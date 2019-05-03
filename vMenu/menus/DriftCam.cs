@@ -777,8 +777,8 @@ namespace vMenuClient {
                                 // Get vector from player's car to target car offset by value
                                 Vector3 targetVec = GetOffsetFromEntityGivenWorldCoords(
                                                         vehicleEntity,
-                                                        target.Position.X + target.Velocity.X + target.ForwardVector.X * (chaseCamOffset / 5),
-                                                        target.Position.Y + target.Velocity.Y + target.ForwardVector.Y * (chaseCamOffset / 5),
+                                                        target.Position.X + target.ForwardVector.X * (chaseCamOffset / 5),
+                                                        target.Position.Y + target.ForwardVector.Y * (chaseCamOffset / 5),
                                                         target.Position.Z);
 
                                 // Get rotation to target vehicle
@@ -825,9 +825,7 @@ namespace vMenuClient {
                                     Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((rotation + GetEntityRotation(vehicleEntity, 4).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
 
                                     // Calculate smooth roll and pitch rotation
-                                    int chasisBone = GetEntityBoneIndexByName(vehicleEntity, "chasis");
-                                    float chasisRoll = GetEntityRoll(chasisBone);
-                                    float roll = Lerp(chaseCamera.Rotation.Y, -chasisRoll, cameraRollInterpolation);
+                                    float roll = Lerp(chaseCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
                                     float pitch = Lerp(chaseCamera.Rotation.X - tilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
 
                                     // Finally, set the rotation
@@ -1026,4 +1024,3 @@ namespace vMenuClient {
         #endregion
     }
 }
-
