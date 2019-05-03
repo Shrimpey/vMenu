@@ -693,8 +693,7 @@ namespace vMenuClient {
                                         driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, Vector3.ForwardLH, oldPosXOffset * DegToRad);
                                     } else {
                                         driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, oldPosXOffset * DegToRad);
-                                    } else
-                                    driftCamera.Position = veh.Position + staticPosition;
+                                    }
                             } else {
                                 driftCamera.Position = veh.Position + staticPosition + veh.RightVector * oldPosXOffset / 12f;
                             }
