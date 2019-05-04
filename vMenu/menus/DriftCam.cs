@@ -688,12 +688,15 @@ namespace vMenuClient {
                             // Calculate final offset taking into consideration dynamic offset (oldPosXOffset), static
                             // offset and the offset resulting from rotating the camera around the car
                             if (!linearPosOffset) {
-                                if (oldPosXOffset != 0f)
+                                if (oldPosXOffset != 0f) {
                                     if (pedLock) {
                                         driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, Vector3.ForwardLH, oldPosXOffset * DegToRad);
                                     } else {
                                         driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, oldPosXOffset * DegToRad);
                                     }
+                                } else {
+                                    driftCamera.Position = veh.Position + staticPosition;
+                                }
                             } else {
                                 driftCamera.Position = veh.Position + staticPosition + veh.RightVector * oldPosXOffset / 12f;
                             }
