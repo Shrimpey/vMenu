@@ -522,7 +522,6 @@ namespace vMenuClient {
         private Camera CreateAttachedCamera(float offsetX, float offsetY, float offsetZ) {
             // Create new camera as a copy of GameplayCamera
             Camera newCam = World.CreateCamera(GameplayCamera.Position, GameplayCamera.Rotation, fov);
-
             // Attach to player's car
             int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
             if (vehicleEntity > 0) {
@@ -541,8 +540,10 @@ namespace vMenuClient {
         private Camera CreateNonAttachedCamera() {
             // Create new camera as a copy of GameplayCamera
             Camera newCam = World.CreateCamera(GameplayCamera.Position, GameplayCamera.Rotation, fov);
-            newCam.NearClip = 0.1f;
-            newCam.DepthOfFieldStrength = 0f;
+            newCam.FarDepthOfField = GetGameplayCamFarDof();
+            newCam.NearDepthOfField = GetGameplayCamNearDof();
+            newCam.FarClip = GetGameplayCamFarClip();
+            newCam.DepthOfFieldStrength = 1f;
             newCam.IsActive = true;
             return newCam;
         }
@@ -662,7 +663,7 @@ namespace vMenuClient {
                             float rollOffset = 0f;
                             int suspensionBoneD = GetEntityBoneIndexByName(vehicleEntity, "door_dside_f");
                             int suspensionBoneP = GetEntityBoneIndexByName(vehicleEntity, "door_pside_f");
-                            int chasisBone = GetEntityBoneIndexByName(vehicleEntity, "chasis");
+                            int chasisBone = GetEntityBoneIndexByName(vehicleEntity, "chassis");
                             float difference = 0f;
                             float doorXOffset = Vector3.Distance(GetWorldPositionOfEntityBone(vehicleEntity, suspensionBoneD),
                                                                     GetWorldPositionOfEntityBone(vehicleEntity, suspensionBoneP)) / 2;
@@ -748,7 +749,7 @@ namespace vMenuClient {
                             // Make sure that target is in range given by angle
                             // TODO: Reintroduce this property, currently maxAngle cannot be changed by player
                             //if (Math.Abs(angle) < requiredAngle) {
-                                closestVeh = veh;
+                            closestVeh = veh;
                             //}
                         }
                     }
@@ -839,7 +840,7 @@ namespace vMenuClient {
                                 target = GetClosestVehicle(2000, maxAngle);
                             }
 
-                        // Find target and generate camera
+                            // Find target and generate camera
                         } else {
                             ResetCameras();
                             chaseCamera = CreateNonAttachedCamera();
