@@ -26,7 +26,9 @@ namespace vMenuClient {
         private Menu selectedCameraMenu = new Menu("Manage Camera", "Manage this saved camera.");
         private static KeyValuePair<string, CameraInfo> currentlySelectedCamera = new KeyValuePair<string, CameraInfo>();
 
-        private static float tilt = 0.0f;
+        private static float userTilt = 0.0f;
+        private static float userYaw = 0.0f;
+        private static bool userLookBehind = false;
 
         #endregion
 
@@ -560,6 +562,9 @@ namespace vMenuClient {
             EnableGameplayCam(true);
         }
 
+        private const float USER_YAW_RETURN_INTERPOLATION = 0.01f;
+        private static float yawReturnTimer = 0f;
+
         /// <summary>
         /// Additional Update function, currently takes care
         /// of user's analog stick up and down movement to
@@ -569,11 +574,28 @@ namespace vMenuClient {
         private async Task GeneralUpdate() {
             // User controls the tilt offset
             float tiltControl = ((GetControlValue(2, 12) / 256f) - 0.5f);
-            if (Math.Abs(tiltControl) > 0.1f) {
-                tilt -= tiltControl;
-                tilt = (((tilt + 90) % 180f) - 90f); // Keeping value in range (-180; 180)
+            float yawControl = ((GetControlValue(2, 13) / 256f) - 0.5f);
+            
+            userLookBehind = IsControlPressed(1, 26);
+
+            if ((Math.Abs(tiltControl) > 0.1f) || (Math.Abs(yawControl) > 0.1f)) {
+                userTilt -= tiltControl;
+                userTilt = (Math.Abs(userTilt) > 80f) ? (Math.Sign(userTilt) * 80f) : (userTilt);
+
+                userYaw -= yawControl*2;
+                userYaw = (Math.Abs(userYaw) > 120f) ? (Math.Sign(userYaw) * 120f) : (userYaw);
+                yawReturnTimer = 0.3f;    // Set the timer before yaw starts to return to 0f
             } else {
                 await Delay(0);
+            }
+
+            // Slow return of user yaw to 0f
+            if((Math.Abs(yawControl) < 0.1f) && (Math.Abs(userYaw) > (USER_YAW_RETURN_INTERPOLATION + 0.01f))) {
+                if (yawReturnTimer <= 0f) {
+                    userYaw = Math.Sign(userYaw) * Lerp(Math.Abs(userYaw), 0f, USER_YAW_RETURN_INTERPOLATION);
+                } else {
+                    yawReturnTimer -= USER_YAW_RETURN_INTERPOLATION;
+                }
             }
         }
 
@@ -695,20 +717,24 @@ namespace vMenuClient {
                                     } else {
                                         driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, oldPosXOffset * DegToRad);
                                     }
+                                    if (userLookBehind) { driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, 179f * DegToRad); }
                                 } else {
                                     driftCamera.Position = veh.Position + staticPosition;
+                                    if (userLookBehind) { driftCamera.Position = veh.Position + staticPosition - (veh.RightVector * sideOffset) + veh.ForwardVector * 3.5f; }
                                 }
                             } else {
                                 driftCamera.Position = veh.Position + staticPosition + veh.RightVector * oldPosXOffset / 12f;
+                                if (userLookBehind) { driftCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f; }
                             }
 
                             // Calculate target rotation as a heading in given range
                             Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((finalRotation + GetEntityRotation(vehicleEntity, 4).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
                             // Calculate smooth roll and pitch rotation
                             float roll = Lerp(driftCamera.Rotation.Y, (rollOffset / DegToRad), cameraRollInterpolation);
-                            float pitch = Lerp(driftCamera.Rotation.X - tilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
+                            float pitch = Lerp(driftCamera.Rotation.X - userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
                             // Finalize the rotation
-                            driftCamera.Rotation = new Vector3(pitch + tilt, roll, newRot.Z);
+                            float yaw = (userLookBehind)?(newRot.Z + 179f) :(newRot.Z + userYaw);
+                            driftCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
                         } else {
                             // In case the camera is null - reset the cameras and reassign this camera
                             ResetCameras();
@@ -820,8 +846,10 @@ namespace vMenuClient {
                                         } else {
                                             chaseCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, rotation * DegToRad);
                                         }
+                                        if (userLookBehind) { chaseCamera.Position = veh.Position - (veh.RightVector * sideOffset) + RotateAroundAxis(staticPosition, veh.UpVector, 179f * DegToRad); }
                                     } else {
                                         chaseCamera.Position = veh.Position + staticPosition;
+                                        if (userLookBehind) {chaseCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f; }
                                     }
 
                                     // Calculate the camera rotation
@@ -829,10 +857,11 @@ namespace vMenuClient {
 
                                     // Calculate smooth roll and pitch rotation
                                     float roll = Lerp(chaseCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
-                                    float pitch = Lerp(chaseCamera.Rotation.X - tilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
+                                    float pitch = Lerp(chaseCamera.Rotation.X - userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
 
                                     // Finally, set the rotation
-                                    chaseCamera.Rotation = new Vector3(pitch + tilt, roll, newRot.Z);
+                                    float yaw = (userLookBehind) ? (newRot.Z + 179f) : (newRot.Z + userYaw);
+                                    chaseCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
                                 }
                             } else {
                                 // Target car not found - try to retarget
