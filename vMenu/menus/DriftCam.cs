@@ -10,6 +10,37 @@ using MenuAPI;
 using Newtonsoft.Json;
 
 namespace vMenuClient {
+
+    public static class CameraConstraints {
+        public const float ROLL_MIN = (-50f);
+        public const float ROLL_MAX = (50f);
+        public const float PITCH_MIN = (-65f);
+        public const float PITCH_MAX = (65f);
+
+        public static float ClampRoll(float roll) {
+            roll = (roll < ROLL_MIN) ? (ROLL_MIN) : (roll);
+            roll = (roll > ROLL_MAX) ? (ROLL_MAX) : (roll);
+            return roll;
+        }
+        public static float ClampPitch(float pitch) {
+            pitch = (pitch < PITCH_MIN) ? (PITCH_MIN) : (pitch);
+            pitch = (pitch > PITCH_MAX) ? (PITCH_MAX) : (pitch);
+            return pitch;
+        }
+        public static bool OverClampCheck(float roll, float pitch) {
+            return (    (roll < ROLL_MIN) ||
+                        (roll > ROLL_MAX) ||
+                        (pitch < PITCH_MIN) ||
+                        (pitch > PITCH_MAX) );
+        }
+        public static bool CrashCheck(int veh) {
+            return (    (GetEntityRoll(veh) < ROLL_MIN) ||
+                        (GetEntityRoll(veh) > ROLL_MAX) ||
+                        (GetEntityPitch(veh) < PITCH_MIN) ||
+                        (GetEntityPitch(veh) > PITCH_MAX));
+        }
+    }
+
     public class DriftCam : BaseScript {
 
         #region variables
@@ -585,17 +616,16 @@ namespace vMenuClient {
                 userYaw -= yawControl*2;
                 userYaw = (Math.Abs(userYaw) > 120f) ? (Math.Sign(userYaw) * 120f) : (userYaw);
                 yawReturnTimer = 0.3f;    // Set the timer before yaw starts to return to 0f
-            } else {
-                await Delay(0);
-            }
 
             // Slow return of user yaw to 0f
-            if((Math.Abs(yawControl) < 0.1f) && (Math.Abs(userYaw) > (USER_YAW_RETURN_INTERPOLATION + 0.01f))) {
+            } else if((Math.Abs(yawControl) < 0.1f) && (Math.Abs(userYaw) > (USER_YAW_RETURN_INTERPOLATION + 0.01f))) {
                 if (yawReturnTimer <= 0f) {
                     userYaw = Math.Sign(userYaw) * Lerp(Math.Abs(userYaw), 0f, USER_YAW_RETURN_INTERPOLATION);
                 } else {
                     yawReturnTimer -= USER_YAW_RETURN_INTERPOLATION;
                 }
+            } else {
+                await Delay(0);
             }
         }
 
@@ -666,56 +696,24 @@ namespace vMenuClient {
                             // Get the static offset based on user's input
                             Vector3 staticPosition = Vector3.Zero;
                             if (pedLock) {
-                                staticPosition = veh.ForwardVector * forwardOffset +
+                                staticPosition =    veh.ForwardVector * forwardOffset +
                                                     veh.RightVector * sideOffset +
                                                     Vector3.ForwardLH * upOffset;
                             } else {
-                                staticPosition = veh.ForwardVector * forwardOffset +
+                                staticPosition =    veh.ForwardVector * forwardOffset +
                                                     veh.RightVector * sideOffset +
                                                     veh.UpVector * upOffset;
                             }
-
-                            #region suspension offset
-
-                            // Fixing wobble bug when sideOffset is different than 0f
-                            // Take into account vehicle's movement based on suspension - vehicle
-                            // tends to lean left and right while the entity's rotation remains
-                            // unchanged. To fix this I calculate door bone's offset from the
-                            // chasis and rotate camera by (additional) value around car's forward axis.
-                            float rollOffset = 0f;
-                            int suspensionBoneD = GetEntityBoneIndexByName(vehicleEntity, "door_dside_f");
-                            int suspensionBoneP = GetEntityBoneIndexByName(vehicleEntity, "door_pside_f");
-                            int chasisBone = GetEntityBoneIndexByName(vehicleEntity, "chassis");
-                            float difference = 0f;
-                            float doorXOffset = Vector3.Distance(GetWorldPositionOfEntityBone(vehicleEntity, suspensionBoneD),
-                                                                    GetWorldPositionOfEntityBone(vehicleEntity, suspensionBoneP)) / 2;
-                            if ((suspensionBoneD > 0) && (suspensionBoneP > 0)) {
-                                float suspensionOffsetD = (veh.UpVector -
-                                                                (GetWorldPositionOfEntityBone(vehicleEntity, chasisBone) -
-                                                                GetWorldPositionOfEntityBone(vehicleEntity, suspensionBoneD))
-                                                            ).Z;
-                                float suspensionOffsetP = (veh.UpVector -
-                                                                (GetWorldPositionOfEntityBone(vehicleEntity, chasisBone) -
-                                                                GetWorldPositionOfEntityBone(vehicleEntity, suspensionBoneP))
-                                                            ).Z;
-                                // Average the difference between doors and midpoint - it will give proper suspension elevation compared to idle state
-                                difference = (suspensionOffsetD - suspensionOffsetP) / 2;
-                            }
-
-                            rollOffset = Math.Sign(sideOffset) * Math.Sign(difference) * (float)Math.Atan2(Math.Abs(difference), doorXOffset);
-                            // Apply suspension offset to position (rotation fixed when declaring roll in a few lines)
-                            staticPosition = RotateAroundAxis(staticPosition, veh.ForwardVector, ((rollOffset / DegToRad) - GetEntityRoll(vehicleEntity)) * DegToRad / 12f);
-
-                            #endregion
 
                             // Calculate final offset taking into consideration dynamic offset (oldPosXOffset), static
                             // offset and the offset resulting from rotating the camera around the car
                             if (!linearPosOffset) {
                                 if (oldPosXOffset != 0f) {
+                                    float rotation = oldPosXOffset + userYaw;
                                     if (pedLock) {
-                                        driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, Vector3.ForwardLH, oldPosXOffset * DegToRad);
+                                        driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, Vector3.ForwardLH, rotation * DegToRad);
                                     } else {
-                                        driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, oldPosXOffset * DegToRad);
+                                        driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, rotation * DegToRad);
                                     }
                                     if (userLookBehind) { driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, 179f * DegToRad); }
                                 } else {
@@ -729,9 +727,22 @@ namespace vMenuClient {
 
                             // Calculate target rotation as a heading in given range
                             Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((finalRotation + GetEntityRotation(vehicleEntity, 4).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
-                            // Calculate smooth roll and pitch rotation
-                            float roll = Lerp(driftCamera.Rotation.Y, (rollOffset / DegToRad), cameraRollInterpolation);
-                            float pitch = Lerp(driftCamera.Rotation.X - userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
+                            float roll = 0f;
+                            float pitch = 0f;
+                            // Clamp values
+                            if (CameraConstraints.CrashCheck(vehicleEntity)) {
+                                staticPosition = Vector3.ForwardLH * upOffset;
+                                driftCamera.Position = veh.Position + staticPosition;
+                                roll = Lerp(driftCamera.Rotation.Y, 0f, 0.1f);
+                                pitch = Lerp(driftCamera.Rotation.X, 0f, 0.1f);
+                                pitch = CameraConstraints.ClampPitch(pitch);
+                            } else {
+                                // Calculate smooth roll and pitch rotation
+                                roll = Lerp(driftCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
+                                pitch = Lerp(driftCamera.Rotation.X - userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
+                                roll = CameraConstraints.ClampRoll(roll);
+                                pitch = CameraConstraints.ClampPitch(pitch);
+                            }
                             // Finalize the rotation
                             float yaw = (userLookBehind)?(newRot.Z + 179f) :(newRot.Z + userYaw);
                             driftCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
@@ -811,21 +822,16 @@ namespace vMenuClient {
                                                         target.Position.Z);
 
                                 // Get rotation to target vehicle
-                                float rotation = -AngleBetween(targetVec, new Vector3(0, 10, 0));
+                                float finalRotation = -AngleBetween(targetVec, new Vector3(0, 10, 0));
 
-                                if (rotation.ToString() != "NaN") {
+                                if (finalRotation.ToString() != "NaN") {
                                     // Lerp target rotation
                                     // (1 - angCamInterpolation) instead of just interpolation so that camera
                                     // can be changed smoothly from lead cam to chase cam
-                                    rotation = Lerp(GetEntityHeading(chaseCamera.Handle), rotation, 1 - angCamInterpolation);
+                                    finalRotation = Lerp(GetEntityHeading(chaseCamera.Handle), finalRotation, 1 - angCamInterpolation);
 
                                     // Calculate camera's position
                                     Vehicle veh = new Vehicle(vehicleEntity);
-                                    if (!lockOffsetPos) {
-                                        oldPosXOffset = Lerp(oldPosXOffset, rotation, posInterpolation);
-                                    } else {
-                                        oldPosXOffset = 0f;
-                                    }
 
                                     // Static position as an offset from the car
                                     Vector3 staticPosition = Vector3.Zero;
@@ -841,6 +847,7 @@ namespace vMenuClient {
 
                                     // Calculate chase camera position
                                     if (!lockOffsetPos) {
+                                        float rotation = finalRotation + userYaw;
                                         if (pedLock) {
                                             chaseCamera.Position = veh.Position + RotateAroundAxis(staticPosition, Vector3.ForwardLH, rotation * DegToRad);
                                         } else {
@@ -853,12 +860,25 @@ namespace vMenuClient {
                                     }
 
                                     // Calculate the camera rotation
-                                    Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((rotation + GetEntityRotation(vehicleEntity, 4).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
+                                    Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((finalRotation + GetEntityRotation(vehicleEntity, 4).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
 
                                     // Calculate smooth roll and pitch rotation
-                                    float roll = Lerp(chaseCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
-                                    float pitch = Lerp(chaseCamera.Rotation.X - userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
-
+                                    float roll = 0f;
+                                    float pitch = 0f;
+                                    // Clamp values
+                                    if (CameraConstraints.CrashCheck(vehicleEntity)) {
+                                        staticPosition = Vector3.ForwardLH * upOffset;
+                                        chaseCamera.Position = veh.Position + staticPosition;
+                                        roll = Lerp(chaseCamera.Rotation.Y, 0f, 0.1f);
+                                        pitch = Lerp(chaseCamera.Rotation.X, 0f, 0.1f);
+                                        pitch = CameraConstraints.ClampPitch(pitch);
+                                    } else {
+                                        // Calculate smooth roll and pitch rotation
+                                        roll = Lerp(chaseCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
+                                        pitch = Lerp(chaseCamera.Rotation.X - userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
+                                        roll = CameraConstraints.ClampRoll(roll);
+                                        pitch = CameraConstraints.ClampPitch(pitch);
+                                    }
                                     // Finally, set the rotation
                                     float yaw = (userLookBehind) ? (newRot.Z + 179f) : (newRot.Z + userYaw);
                                     chaseCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
