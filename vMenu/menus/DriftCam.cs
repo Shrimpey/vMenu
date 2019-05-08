@@ -561,6 +561,11 @@ namespace vMenuClient {
                 Vehicle veh = new Vehicle(vehicleEntity);
                 newCam.AttachTo(veh, new Vector3(offsetX, offsetY, offsetZ));
             }
+            newCam.FarDepthOfField = GetGameplayCamFarDof();
+            newCam.NearDepthOfField = GetGameplayCamNearDof();
+            newCam.FarClip = GetGameplayCamFarClip();
+            newCam.DepthOfFieldStrength = 10f;
+            newCam.MotionBlurStrength = 0.1f;
             newCam.IsActive = true;
             return newCam;
         }
@@ -576,7 +581,8 @@ namespace vMenuClient {
             newCam.FarDepthOfField = GetGameplayCamFarDof();
             newCam.NearDepthOfField = GetGameplayCamNearDof();
             newCam.FarClip = GetGameplayCamFarClip();
-            newCam.DepthOfFieldStrength = 1f;
+            newCam.DepthOfFieldStrength = 10f;
+            newCam.MotionBlurStrength = 0.1f;
             newCam.IsActive = true;
             return newCam;
         }
