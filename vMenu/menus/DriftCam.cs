@@ -541,6 +541,10 @@ namespace vMenuClient {
             return Vector3.TransformCoordinate(v, Matrix.RotationAxis(Vector3.Normalize(axis), angle));
         }
 
+        private float Fmod(float a, float b) {
+            return (a - b * (float)Math.Floor(a / b));
+        }
+
         #endregion
 
         #region camera operations
@@ -599,7 +603,7 @@ namespace vMenuClient {
             EnableGameplayCam(true);
         }
 
-        private const float USER_YAW_RETURN_INTERPOLATION = 0.01f;
+        private const float USER_YAW_RETURN_INTERPOLATION = 0.015f;
         private static float yawReturnTimer = 0f;
 
         /// <summary>
@@ -619,14 +623,18 @@ namespace vMenuClient {
                 userTilt -= tiltControl;
                 userTilt = (Math.Abs(userTilt) > 80f) ? (Math.Sign(userTilt) * 80f) : (userTilt);
 
-                userYaw -= yawControl*2;
-                userYaw = (Math.Abs(userYaw) > 120f) ? (Math.Sign(userYaw) * 120f) : (userYaw);
-                yawReturnTimer = 0.3f;    // Set the timer before yaw starts to return to 0f
+                userYaw -= yawControl*4;
+                //userYaw = (Math.Abs(userYaw) > 120f) ? (Math.Sign(userYaw) * 120f) : (userYaw);
+                userYaw = ( Fmod((userYaw + 180.0f), 360.0f) - 180.0f);
+                yawReturnTimer = 0.7f;    // Set the timer before yaw starts to return to 0f
 
             // Slow return of user yaw to 0f
             } else if((Math.Abs(yawControl) < 0.1f) && (Math.Abs(userYaw) > (USER_YAW_RETURN_INTERPOLATION + 0.01f))) {
+                // Only return to 0f if user is not moving
+                int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
                 if (yawReturnTimer <= 0f) {
-                    userYaw = Math.Sign(userYaw) * Lerp(Math.Abs(userYaw), 0f, USER_YAW_RETURN_INTERPOLATION);
+                    float speedModifier = (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) < 3f)?(Math.Abs(GetEntityVelocity(vehicleEntity).Length())/3f):(1f);
+                    userYaw = Math.Sign(userYaw) * Lerp(Math.Abs(userYaw), 0f, USER_YAW_RETURN_INTERPOLATION * speedModifier);
                 } else {
                     yawReturnTimer -= USER_YAW_RETURN_INTERPOLATION;
                 }
@@ -724,11 +732,11 @@ namespace vMenuClient {
                                     if (userLookBehind) { driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, 179f * DegToRad); }
                                 } else {
                                     driftCamera.Position = veh.Position + staticPosition;
-                                    if (userLookBehind) { driftCamera.Position = veh.Position + staticPosition - (veh.RightVector * sideOffset) + veh.ForwardVector * 3.5f; }
+                                    if (userLookBehind) { driftCamera.Position = veh.Position + staticPosition - (veh.RightVector * sideOffset) + veh.ForwardVector * 3.5f + veh.UpVector * 0.5f; }
                                 }
                             } else {
                                 driftCamera.Position = veh.Position + staticPosition + veh.RightVector * oldPosXOffset / 12f;
-                                if (userLookBehind) { driftCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f; }
+                                if (userLookBehind) { driftCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f + veh.UpVector * 0.5f; }
                             }
 
                             // Calculate target rotation as a heading in given range
@@ -752,6 +760,10 @@ namespace vMenuClient {
                             // Finalize the rotation
                             float yaw = (userLookBehind)?(newRot.Z + 179f) :(newRot.Z + userYaw);
                             driftCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
+
+
+                            // Update minimap
+                            LockMinimapAngle((int)(Fmod(yaw, 360f)));
                         } else {
                             // In case the camera is null - reset the cameras and reassign this camera
                             ResetCameras();
@@ -862,7 +874,7 @@ namespace vMenuClient {
                                         if (userLookBehind) { chaseCamera.Position = veh.Position - (veh.RightVector * sideOffset) + RotateAroundAxis(staticPosition, veh.UpVector, 179f * DegToRad); }
                                     } else {
                                         chaseCamera.Position = veh.Position + staticPosition;
-                                        if (userLookBehind) {chaseCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f; }
+                                        if (userLookBehind) {chaseCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f + veh.UpVector * 0.5f; }
                                     }
 
                                     // Calculate the camera rotation
@@ -888,6 +900,9 @@ namespace vMenuClient {
                                     // Finally, set the rotation
                                     float yaw = (userLookBehind) ? (newRot.Z + 179f) : (newRot.Z + userYaw);
                                     chaseCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
+
+                                    // Update minimap
+                                    LockMinimapAngle((int)(Fmod(yaw, 360f)));
                                 }
                             } else {
                                 // Target car not found - try to retarget
@@ -1070,9 +1085,16 @@ namespace vMenuClient {
             scMenuItems = new Dictionary<MenuItem, KeyValuePair<string, CameraInfo>>();
 
             foreach (var sc in savedCameras) {
-                MenuItem savedCameraBtn = new MenuItem(sc.Key.Substring(4), $"Manage this saved camera.") {
-                    Label = $"→→→"
-                };
+                MenuItem savedCameraBtn;
+                if (sc.Key.Length > 4) {
+                    savedCameraBtn = new MenuItem(sc.Key.Substring(4), $"Manage this saved camera.") {
+                        Label = $"→→→"
+                    };
+                } else {
+                    savedCameraBtn = new MenuItem("NULL", $"Manage this saved camera.") {
+                        Label = $"→→→"
+                    };
+                }
                 savedCamerasMenu.AddMenuItem(savedCameraBtn);
                 scMenuItems.Add(savedCameraBtn, sc);
             }
