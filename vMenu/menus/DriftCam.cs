@@ -49,6 +49,9 @@ namespace vMenuClient {
         public bool DriftAngularCam { get; private set; } = false;
         public bool ChaseCam { get; private set; } = false;
 
+        private MenuCheckboxItem driftAngularCam;
+        private MenuCheckboxItem chaseCam;
+
         private static Camera driftCamera = null;
         private static Camera chaseCamera = null;
 
@@ -77,9 +80,9 @@ namespace vMenuClient {
             #region checkbox items
 
             // Enabling angular drift cam
-            MenuCheckboxItem driftAngularCam = new MenuCheckboxItem("Enable lead camera", "Make sure you have disabled X and Y camera lock in misc settings.", false);
+            driftAngularCam = new MenuCheckboxItem("Enable lead camera", "Make sure you have disabled X and Y camera lock in misc settings.", false);
             // Enabling chase cam
-            MenuCheckboxItem chaseCam = new MenuCheckboxItem("Enable chase camera", "Locks to a target in front, switches to regular cam if target not in range. Make sure you have disabled X and Y camera lock in misc settings.", false);
+            chaseCam = new MenuCheckboxItem("Enable chase camera", "Locks to a target in front, switches to regular cam if target not in range. Make sure you have disabled X and Y camera lock in misc settings.", false);
             // Lock position offset
             MenuCheckboxItem lockPosOffsetCheckbox = new MenuCheckboxItem("Lock position offset", "Locks position offset, useful when sticking camera to the car - on top of hood, as FPV cam, etc.", false);
             // Linear position offset
@@ -178,17 +181,12 @@ namespace vMenuClient {
             MenuListItem customCamUpOffsetList = new MenuListItem("Z offset", customCamUpOffsetValues, 141, "Custom camera offset in up direction. (-5,8)") {
                 ShowColorPanel = false
             };
-
-
-            // WIP, this value is not yet fully implemented.
-            // TODO: Make chase camera switch to lead camera when exceeding this value (angle)
-            // and (maybe) lock back onto the target if back in range
-            // Angle for chase camera
+            
             List<string> chaseCamMaxAngleValues = new List<string>();
             for (float i = 25; i <= 360; i += 5) {
                 chaseCamMaxAngleValues.Add(i.ToString());
             }
-            MenuListItem chaseCamMaxAngleList = new MenuListItem("Max angle to lock.", chaseCamMaxAngleValues, 10, "Max angle from velocity vector to keep the lock on, if angle exceeds this limit, camera switches back to normal. (25,360)") {
+            MenuListItem chaseCamMaxAngleList = new MenuListItem("Max angle to lock.", chaseCamMaxAngleValues, 67, "Max angle from velocity vector to keep the lock on, if angle exceeds this limit, camera switches back to normal. (25,360)") {
                 ShowColorPanel = false
             };
 
@@ -210,27 +208,14 @@ namespace vMenuClient {
             menu.AddMenuItem(posInterpolationList);
             // Chase camera
             menu.AddMenuItem(chaseCamOffsetList);
-            //menu.AddMenuItem(chaseCamMaxAngleList);
+            menu.AddMenuItem(chaseCamMaxAngleList);
             // FOV and offset
             menu.AddMenuItem(customCamFOVList);
             menu.AddMenuItem(customCamForwardOffsetList);
             menu.AddMenuItem(customCamUpOffsetList);
             menu.AddMenuItem(customCamSideOffsetList);
 
-            angCamModifierList.Enabled = false;
-            angCamInterpolationList.Enabled = false;
-            chaseCamOffsetList.Enabled = false;
-            pedLockCheckbox.Enabled = false;
-            chaseCamMaxAngleList.Enabled = false;
-            rollInterpolationList.Enabled = false;
-            pitchInterpolationList.Enabled = false;
-            customCamForwardOffsetList.Enabled = false;
-            customCamUpOffsetList.Enabled = false;
-            customCamSideOffsetList.Enabled = false;
-            customCamFOVList.Enabled = false;
-            linearPosCheckbox.Enabled = false;
-            lockPosOffsetCheckbox.Enabled = false;
-            posInterpolationList.Enabled = false;
+            DisableMenus();
 
             #endregion
 
@@ -347,58 +332,28 @@ namespace vMenuClient {
                 if (_item == driftAngularCam) {
 
                     DriftAngularCam = _checked;
-                    angCamModifierList.Enabled = _checked;
-
-                    angCamInterpolationList.Enabled = _checked;
-                    rollInterpolationList.Enabled = _checked;
-                    pitchInterpolationList.Enabled = _checked;
-                    customCamForwardOffsetList.Enabled = _checked;
-                    customCamUpOffsetList.Enabled = _checked;
-                    customCamSideOffsetList.Enabled = _checked;
-                    customCamFOVList.Enabled = _checked;
-                    linearPosCheckbox.Enabled = _checked;
-                    lockPosOffsetCheckbox.Enabled = _checked;
-                    posInterpolationList.Enabled = _checked;
-                    pedLockCheckbox.Enabled = _checked;
-
-                    // Disable other camera modes
+                    MainMenu.DriftCamMenu.chaseCam.Checked = false;
                     ChaseCam = false;
-                    chaseCam.Enabled = !_checked;
-
-                    chaseCamMaxAngleList.Enabled = false;
-                    chaseCamOffsetList.Enabled = false;
-
+                    
                     if (!_checked) {
+                        DisableMenus();
                         ResetCameras();
+                    } else {
+                        EnableMenus();
                     }
 
                 }
                 if (_item == chaseCam) {
+
                     ChaseCam = _checked;
-                    chaseCamMaxAngleList.Enabled = _checked;
-                    chaseCamOffsetList.Enabled = _checked;
-
-                    angCamInterpolationList.Enabled = _checked;
-                    rollInterpolationList.Enabled = _checked;
-                    pitchInterpolationList.Enabled = _checked;
-                    customCamForwardOffsetList.Enabled = _checked;
-                    customCamUpOffsetList.Enabled = _checked;
-                    customCamSideOffsetList.Enabled = _checked;
-                    customCamFOVList.Enabled = _checked;
-                    linearPosCheckbox.Enabled = _checked;
-                    lockPosOffsetCheckbox.Enabled = _checked;
-                    posInterpolationList.Enabled = _checked;
-                    pedLockCheckbox.Enabled = _checked;
-
-                    // Disable other camera modes
+                    MainMenu.DriftCamMenu.driftAngularCam.Checked = false;
                     DriftAngularCam = false;
-                    driftAngularCam.Enabled = !_checked;
-
-                    angCamModifierList.Enabled = false;
 
                     if (_checked) {
+                        EnableMenus();
                         target = GetClosestVehicle(2000, maxAngle);
                     } else {
+                        DisableMenus();
                         ResetCameras();
                     }
                 }
@@ -547,6 +502,63 @@ namespace vMenuClient {
 
         #endregion
 
+        #region camera switching
+        private void SwitchCameraToDrift() {
+            SwitchToGameplayCam();
+            MainMenu.DriftCamMenu.DriftAngularCam = true;
+            EnableMenus();
+            MainMenu.DriftCamMenu.driftAngularCam.Checked = true;
+        }
+
+        private void SwitchCameraToChase() {
+            SwitchToGameplayCam();
+            MainMenu.DriftCamMenu.ChaseCam = true;
+            EnableMenus();
+            List<MenuItem> items = GetMenu().GetMenuItems();
+            MainMenu.DriftCamMenu.chaseCam.Checked = true;
+        }
+
+        private void SwitchToGameplayCam() {
+            MainMenu.DriftCamMenu.DriftAngularCam = false;
+            MainMenu.DriftCamMenu.ChaseCam = false;
+            DisableMenus();
+            ResetCameras();
+            MainMenu.DriftCamMenu.driftAngularCam.Checked = false;
+            MainMenu.DriftCamMenu.chaseCam.Checked = false;
+        }
+
+        /// <summary>
+        /// Disables all the submenus except for two first checkboxes
+        /// </summary>
+        private void DisableMenus() {
+            // Disable everything
+            List<MenuItem> items = GetMenu().GetMenuItems();
+            foreach (MenuItem item in items) {
+                item.Enabled = false;
+            }
+            // Reenable Drift Cam, Chase Cam fields
+            // as well as save button
+            if (items.Count > 2) {
+                items[0].Enabled = true;
+                items[1].Enabled = true;
+            } else {
+                Notify.Error("Your menu does not seem to have any submenus, something got corrupted.");
+            }
+        }
+
+        /// <summary>
+        /// Reenables all the submenus
+        /// </summary>
+        private void EnableMenus() {
+            // Enable everything
+            List<MenuItem> submenus = menu.GetMenuItems();
+            foreach (MenuItem submenu in submenus) {
+                submenu.Enabled = true;
+            }
+        }
+
+        #endregion
+
         #region camera operations
 
         /// <summary>
@@ -624,7 +636,6 @@ namespace vMenuClient {
                 userTilt = (Math.Abs(userTilt) > 80f) ? (Math.Sign(userTilt) * 80f) : (userTilt);
 
                 userYaw -= yawControl*4;
-                //userYaw = (Math.Abs(userYaw) > 120f) ? (Math.Sign(userYaw) * 120f) : (userYaw);
                 userYaw = ( Fmod((userYaw + 180.0f), 360.0f) - 180.0f);
                 yawReturnTimer = 0.7f;    // Set the timer before yaw starts to return to 0f
 
@@ -658,7 +669,7 @@ namespace vMenuClient {
         private static float angularVelOld = 0f;
         private static float posInterpolation = 0.5f;
         private static float oldPosXOffset = 0f;
-        private static float maxAngle = 75f;
+        private static float maxAngle = 360f;
 
         private static float cameraRollInterpolation = 0.1f;
         private static float cameraPitchInterpolation = 0.1f;
@@ -803,9 +814,9 @@ namespace vMenuClient {
                             float angle = -AngleBetween(targetVec, new Vector3(0, 0.0001f, 0) + GetEntitySpeedVector(playerVeh, true));
                             // Make sure that target is in range given by angle
                             // TODO: Reintroduce this property, currently maxAngle cannot be changed by player
-                            //if (Math.Abs(angle) < requiredAngle) {
-                            closestVeh = veh;
-                            //}
+                            if (Math.Abs(angle) < requiredAngle) {
+                                closestVeh = veh;
+                            }
                         }
                     }
                 }
@@ -841,6 +852,12 @@ namespace vMenuClient {
 
                                 // Get rotation to target vehicle
                                 float finalRotation = -AngleBetween(targetVec, new Vector3(0, 10, 0));
+
+                                if(Math.Abs(finalRotation) > maxAngle) {
+                                    target = null;
+                                    SwitchCameraToDrift();
+                                    return;
+                                }
 
                                 if (finalRotation.ToString() != "NaN") {
                                     // Lerp target rotation
@@ -907,7 +924,8 @@ namespace vMenuClient {
                             } else {
                                 // Target car not found - try to retarget
                                 // TODO: Maybe switch to lead camera?
-                                target = GetClosestVehicle(2000, maxAngle);
+                                //target = GetClosestVehicle(2000, maxAngle);
+                                SwitchCameraToDrift();
                             }
 
                             // Find target and generate camera
