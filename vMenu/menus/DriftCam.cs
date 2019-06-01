@@ -613,6 +613,7 @@ namespace vMenuClient {
             chaseCamera = null;
             World.DestroyAllCameras();
             EnableGameplayCam(true);
+            UnlockMinimapAngle();
         }
 
         private const float USER_YAW_RETURN_INTERPOLATION = 0.015f;
