@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -514,7 +514,6 @@ namespace vMenuClient {
             SwitchToGameplayCam();
             MainMenu.DriftCamMenu.ChaseCam = true;
             EnableMenus();
-            List<MenuItem> items = GetMenu().GetMenuItems();
             MainMenu.DriftCamMenu.chaseCam.Checked = true;
         }
 
@@ -562,28 +561,12 @@ namespace vMenuClient {
         #region camera operations
 
         /// <summary>
-        /// Creates a base camera for lead and chase cam that is
-        /// attached to vehicle entity with given offset. Currently
-        /// not used anywhere, so unless future update requires such an
-        /// attachment function it can be removed.
+        /// Checks whether any of the custom camera is active, used
+        /// to disable background activity in OnTick functions
         /// </summary>
         /// <returns></returns>
-        private Camera CreateAttachedCamera(float offsetX, float offsetY, float offsetZ) {
-            // Create new camera as a copy of GameplayCamera
-            Camera newCam = World.CreateCamera(GameplayCamera.Position, GameplayCamera.Rotation, fov);
-            // Attach to player's car
-            int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
-            if (vehicleEntity > 0) {
-                Vehicle veh = new Vehicle(vehicleEntity);
-                newCam.AttachTo(veh, new Vector3(offsetX, offsetY, offsetZ));
-            }
-            newCam.FarDepthOfField = GetGameplayCamFarDof();
-            newCam.NearDepthOfField = GetGameplayCamNearDof();
-            newCam.FarClip = GetGameplayCamFarClip();
-            newCam.DepthOfFieldStrength = 10f;
-            newCam.MotionBlurStrength = 0.1f;
-            newCam.IsActive = true;
-            return newCam;
+        private bool IsCustomCameraEnabled() {
+            return (MainMenu.DriftCamMenu.DriftAngularCam || MainMenu.DriftCamMenu.ChaseCam);
         }
 
         /// <summary>
@@ -594,10 +577,8 @@ namespace vMenuClient {
         private Camera CreateNonAttachedCamera() {
             // Create new camera as a copy of GameplayCamera
             Camera newCam = World.CreateCamera(GameplayCamera.Position, GameplayCamera.Rotation, fov);
-            newCam.FarDepthOfField = GetGameplayCamFarDof();
-            newCam.NearDepthOfField = GetGameplayCamNearDof();
             newCam.FarClip = GetGameplayCamFarClip();
-            newCam.DepthOfFieldStrength = 10f;
+            newCam.DepthOfFieldStrength = 50f;
             newCam.MotionBlurStrength = 0.1f;
             newCam.IsActive = true;
             return newCam;
@@ -626,32 +607,42 @@ namespace vMenuClient {
         /// </summary>
         /// <returns></returns>
         private async Task GeneralUpdate() {
-            // User controls the tilt offset
-            float tiltControl = ((GetControlValue(2, 12) / 256f) - 0.5f);
-            float yawControl = ((GetControlValue(2, 13) / 256f) - 0.5f);
-            
-            userLookBehind = IsControlPressed(1, 26);
+            if (IsCustomCameraEnabled()) {
+                // User controls the tilt offset
+                float tiltControl = ((float)(GetControlValue(1, 2) / 256f) - 0.5f);
+                float yawControl = ((float)(GetControlValue(1, 1) / 256f) - 0.5f);
 
-            if ((Math.Abs(tiltControl) > 0.1f) || (Math.Abs(yawControl) > 0.1f)) {
-                userTilt -= tiltControl;
-                userTilt = (Math.Abs(userTilt) > 80f) ? (Math.Sign(userTilt) * 80f) : (userTilt);
+                userLookBehind = IsControlPressed(1, 26);
 
-                userYaw -= yawControl*4;
-                userYaw = ( Fmod((userYaw + 180.0f), 360.0f) - 180.0f);
-                yawReturnTimer = 0.7f;    // Set the timer before yaw starts to return to 0f
+                if ((Math.Abs(tiltControl) > 0.01f) || (Math.Abs(yawControl) > 0.01f)) {
+                    //Account for difference in gamepad and mouse acceleration
+                    if (IsInputDisabled(1)) {
+                        userTilt -= tiltControl * 12f;
+                        userYaw -= yawControl * 32;
+                    } else {
+                        userTilt -= tiltControl;
+                        userYaw -= yawControl * 4f;
+                    }
+                    userTilt = (Math.Abs(userTilt) > 80f) ? (Math.Sign(userTilt) * 80f) : (userTilt);
 
-            // Slow return of user yaw to 0f
-            } else if((Math.Abs(yawControl) < 0.1f) && (Math.Abs(userYaw) > (USER_YAW_RETURN_INTERPOLATION + 0.01f))) {
-                // Only return to 0f if user is not moving
-                int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
-                if (yawReturnTimer <= 0f) {
-                    float speedModifier = (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) < 3f)?(Math.Abs(GetEntityVelocity(vehicleEntity).Length())/3f):(1f);
-                    userYaw = Math.Sign(userYaw) * Lerp(Math.Abs(userYaw), 0f, USER_YAW_RETURN_INTERPOLATION * speedModifier);
+                    userYaw = (Fmod((userYaw + 180.0f), 360.0f) - 180.0f);
+                    yawReturnTimer = 1f;    // Set the timer before yaw starts to return to 0f
+
+                    // Slow return of user yaw to 0f
+                } else if ((Math.Abs(yawControl) <= 0.01f) && (Math.Abs(userYaw) > (USER_YAW_RETURN_INTERPOLATION + 0.01f))) {
+                    // Only return to 0f if user is not moving
+                    int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
+                    if (yawReturnTimer <= 0f) {
+                        float speedModifier = (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) < 3f) ? (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) / 3f) : (1f);
+                        userYaw = Math.Sign(userYaw) * Lerp(Math.Abs(userYaw), 0f, USER_YAW_RETURN_INTERPOLATION * speedModifier);
+                    } else {
+                        yawReturnTimer -= USER_YAW_RETURN_INTERPOLATION;
+                    }
                 } else {
-                    yawReturnTimer -= USER_YAW_RETURN_INTERPOLATION;
+                    await Delay(0);
                 }
             } else {
-                await Delay(0);
+                await Delay(1);
             }
         }
 
@@ -772,8 +763,7 @@ namespace vMenuClient {
                             // Finalize the rotation
                             float yaw = (userLookBehind)?(newRot.Z + 179f) :(newRot.Z + userYaw);
                             driftCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
-
-
+                            
                             // Update minimap
                             LockMinimapAngle((int)(Fmod(yaw, 360f)));
                         } else {
@@ -814,7 +804,6 @@ namespace vMenuClient {
                             Vector3 targetVec = GetOffsetFromEntityGivenWorldCoords(playerVeh, veh.Position.X, veh.Position.Y, veh.Position.Z);
                             float angle = -AngleBetween(targetVec, new Vector3(0, 0.0001f, 0) + GetEntitySpeedVector(playerVeh, true));
                             // Make sure that target is in range given by angle
-                            // TODO: Reintroduce this property, currently maxAngle cannot be changed by player
                             if (Math.Abs(angle) < requiredAngle) {
                                 closestVeh = veh;
                             }
@@ -857,6 +846,7 @@ namespace vMenuClient {
                                 if(Math.Abs(finalRotation) > maxAngle) {
                                     target = null;
                                     SwitchCameraToDrift();
+                                    Notify.Info("Target exceeded angle limit, switching to Drift Cam", false);
                                     return;
                                 }
 
@@ -923,10 +913,9 @@ namespace vMenuClient {
                                     LockMinimapAngle((int)(Fmod(yaw, 360f)));
                                 }
                             } else {
-                                // Target car not found - try to retarget
-                                // TODO: Maybe switch to lead camera?
-                                //target = GetClosestVehicle(2000, maxAngle);
+                                // Target car not found - switch to Drift Cam
                                 SwitchCameraToDrift();
+                                Notify.Info("Target not found, switching to Drift Cam", false);
                             }
 
                             // Find target and generate camera
