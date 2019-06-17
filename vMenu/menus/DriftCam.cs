@@ -975,15 +975,15 @@ namespace vMenuClient {
 
         // Drone parameters
         private const float GRAVITY_CONST = 9.8f;       // Gravity force constant
-        private const float GRAVITY_DELIMITER = 7.5f;   // Less - gravity is stronger
+        private const float TIMESTEP_DELIMITER = 100.15f;   // Less - gravity is stronger
         private const float HOVER_MULT = 5f;            // Hover multiplier
         private const float DRONE_DRAG = 0.002f;        // Air resistance
-        private const float DRONE_AGILITY_ROT = 7.5f;   // How quick is rotational response of the drone
-        private const float DRONE_AGILITY_VEL = 0.015f; // How quick is velocity and acceleration response
-        private const float DRONE_MAX_VEL = 15f;       // Max drone velocity in an axis
-
-        private Vector3 gravity = Vector3.Zero;
-        private float freeFallTime = 0f;
+        private const float DRONE_AGILITY_ROT = 7f;   // How quick is rotational response of the drone
+        private const float DRONE_AGILITY_VEL = 50f; // How quick is velocity and acceleration response
+        private const float DRONE_MAX_VEL = 30f;       // Max drone velocity in an axis
+        private const float GRAVITY_RECOVERY_MULTIPLIER = 6.5f;   // How quickly can drone regain acceleration after free fall
+        
+        private static float freeFallTime = 0f;
         
         /// <summary>
         /// Changes main render camera behaviour, creates a free camera controlled
@@ -998,26 +998,27 @@ namespace vMenuClient {
                         UpdateDroneControls();
                         UpdateDroneValues();
 
+                        float deltaTime = Timestep() / TIMESTEP_DELIMITER;
+
                         // Calculate impact of gravity force
-                        freeFallTime += Timestep() / GRAVITY_DELIMITER;                    // Increase free fall time
-                        freeFallTime *= (1f - (drone.acceleration * 2));    // Free fall time is decreased when drone is accelerated
+                        freeFallTime += deltaTime;                    // Increase free fall time
+                        freeFallTime -= ((drone.acceleration * GRAVITY_RECOVERY_MULTIPLIER) * deltaTime);    // Free fall time is decreased when drone is accelerated
+                        freeFallTime = (freeFallTime < 0f) ? (0f) : (freeFallTime);
                         drone.downVelocity = GRAVITY_CONST * freeFallTime;  // v = at
 
                         // Calculate velocity in each direction based on acceleration
-                        drone.velocity += droneCamera.ForwardVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f;    // Split acceleration to 2 axes to
-                        drone.velocity -= droneCamera.UpVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f;         // make camera tilted 45 degrees compared to drone
-                        drone.velocity -= droneCamera.ForwardVector * drone.deceleration * DRONE_AGILITY_VEL;
-                        if (drone.velocity.Length() < HOVER_MULT) { drone.downVelocity *= (drone.velocity.Length() / HOVER_MULT); } // Make drone hover at low speeds
+                        drone.velocity += droneCamera.ForwardVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;    // Split acceleration to 2 axes to
+                        drone.velocity -= droneCamera.UpVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;         // make camera tilted 45 degrees compared to drone
+                        drone.velocity -= droneCamera.ForwardVector * drone.deceleration * DRONE_AGILITY_VEL * deltaTime;
+                        //if (drone.velocity.Length() < HOVER_MULT * deltaTime) { drone.downVelocity *= (drone.velocity.Length() / HOVER_MULT * deltaTime); } // Make drone hover at low speeds
                         // Acount for air resistance
                         drone.velocity -= drone.velocity * DRONE_DRAG;
                         // Clamp velocity to max
                         ClampDroneVelocity();
                         // Update camera
-                        droneCamera.Position -= Vector3.ForwardLH * drone.downVelocity +
-                                                drone.velocity;
-                        //float yaw = drone.yaw + (Fmod(droneCamera.Rotation.Y, 180.0f) / 180.0f) * drone.pitch;
-                        //droneCamera.Rotation = new Vector3(drone.pitch, drone.roll, drone.yaw);     // TODO: Separate roll/pitch input combination
-                        SetCamRot(droneCamera.Handle, drone.pitch, drone.roll, drone.yaw, 0);
+                        droneCamera.Position -= Vector3.ForwardLH * drone.downVelocity + drone.velocity;
+                        //SetCamRot(droneCamera.Handle, drone.pitch, drone.roll, drone.yaw, 4);
+                        droneCamera.Rotation = new Vector3(drone.pitch, drone.roll, drone.yaw);
                     } else {
                         ResetCameras();
                         droneCamera = CreateNonAttachedCamera();
@@ -1025,8 +1026,10 @@ namespace vMenuClient {
                         World.RenderingCamera = droneCamera;
                         droneCamera.IsActive = true;
                         drone = new DroneInfo {
-                            velocity = Vector3.Zero
+                            velocity = Vector3.Zero,
+                            downVelocity = 0f
                         };
+                        freeFallTime = 0f;
                     }
                 }
             } else {
@@ -1069,9 +1072,9 @@ namespace vMenuClient {
 
         // Update drone's rotation based on input
         private void UpdateDroneValues() {
-            drone.pitch += drone.controlPitch * DRONE_AGILITY_ROT * 0.8f;
-            drone.yaw += drone.controlYaw * DRONE_AGILITY_ROT * 0.85f;
-            drone.roll += drone.controlRoll * DRONE_AGILITY_ROT * 1.2f;
+            drone.pitch += drone.controlPitch * DRONE_AGILITY_ROT * 0.75f;
+            drone.yaw += drone.controlYaw * DRONE_AGILITY_ROT * 0.8f;
+            drone.roll += drone.controlRoll * DRONE_AGILITY_ROT * 1.1f;
 
             drone.pitch = Fmod(drone.pitch, 360.0f);
             drone.yaw = Fmod(drone.yaw, 360.0f);
@@ -1080,9 +1083,10 @@ namespace vMenuClient {
         }
 
         private void ClampDroneVelocity() {
-            if (drone.velocity.X > DRONE_MAX_VEL) { drone.velocity = new Vector3(DRONE_MAX_VEL, drone.velocity.Y, drone.velocity.Z); };
-            if (drone.velocity.Y > DRONE_MAX_VEL) { drone.velocity = new Vector3(drone.velocity.X, DRONE_MAX_VEL, drone.velocity.Z); };
-            if (drone.velocity.Z > DRONE_MAX_VEL) { drone.velocity = new Vector3(drone.velocity.X, drone.velocity.Y, DRONE_MAX_VEL); };
+            float maxVel = DRONE_MAX_VEL * Timestep();
+            if (Math.Abs(drone.velocity.X) > maxVel) { drone.velocity = new Vector3(Math.Sign(drone.velocity.X) * maxVel, drone.velocity.Y, drone.velocity.Z); };
+            if (Math.Abs(drone.velocity.Y) > maxVel) { drone.velocity = new Vector3(drone.velocity.X, Math.Sign(drone.velocity.Y) * maxVel, drone.velocity.Z); };
+            if (Math.Abs(drone.velocity.Z) > maxVel) { drone.velocity = new Vector3(drone.velocity.X, drone.velocity.Y, Math.Sign(drone.velocity.Z) * maxVel); };
         }
 
         #endregion
