@@ -1006,17 +1006,20 @@ namespace vMenuClient {
         private DroneInfo drone;
 
         // Drone parameters, tune them here
-        private const float GRAVITY_CONST = 9.8f;       // Gravity force constant ///9.8f
+        private const float GRAVITY_CONST = 10.8f;       // Gravity force constant ///9.8f
         private const float TIMESTEP_DELIMITER = 80.15f;   // Less - gravity is stronger ///60.15f
-        private const float DRONE_DRAG = 0.0015f;        // Air resistance ///0.0015f
-        private const float DRONE_AGILITY_ROT = 6.5f;   // How quick is rotational response of the drone ///6.5f
-        private const float DRONE_AGILITY_VEL = 40f; // How quick is velocity and acceleration response ///30f
-        private const float DRONE_MAX_VEL = 39f;       // Max drone velocity in an axis ///39f
-        private const float GRAVITY_RECOVERY_MULTIPLIER = 5.75f;   // How quickly can drone regain acceleration after free fall ///10.75f
-        
+        private const float DRONE_DRAG = 0.0050f;        // Air resistance ///0.0015f
+        private const float DRONE_AGILITY_ROT = 8.5f;   // How quick is rotational response of the drone ///6.5f
+        private const float DRONE_AGILITY_VEL = 60f; // How quick is velocity and acceleration response ///30f
+        private const float DRONE_MAX_VEL = 29f;       // Max drone velocity in an axis ///39f
+        private const float GRAVITY_RECOVERY_MULTIPLIER = 6.75f;   // How quickly can drone regain acceleration after free fall ///10.75f
+
         // Time of free fall, the longer fall the higher gravity down vector
         private static float freeFallTime = 0f;
-        
+
+        // TODO: make a model with collisions
+        //private static int modelEntity = 0;
+
         /// <summary>
         /// Changes main render camera behaviour, creates a free camera controlled
         /// like a drone.
@@ -1033,6 +1036,13 @@ namespace vMenuClient {
                         UpdateDronePosition();
                         UpdateDroneRotation();
 
+                        // Update model position
+                        /*
+                        SetEntityCoords(modelEntity,
+                            droneCamera.Position.X - droneCamera.UpVector.X * 0.75f,
+                            droneCamera.Position.Y - droneCamera.UpVector.Y * 0.75f,
+                            droneCamera.Position.Z - droneCamera.UpVector.Z * 0.75f,
+                            false, false, false, false);*/
                     } else {
                         ResetCameras();
                         droneCamera = CreateNonAttachedCamera();
@@ -1045,6 +1055,11 @@ namespace vMenuClient {
                             rotation = new Quaternion(0f, 0f, 0f, 1f)
                         };
                         freeFallTime = 0f;
+                        // TODO: Add model with proper collision detection
+                        /*if (modelEntity <= 0) {
+                            modelEntity = CreateObject(GetHashKey("prop_ing_camera_01"), 0f, 0f, 0f, false, true, false); //prop_film_cam_01
+                            SetEntityCollision(modelEntity, false, false);
+                        }*/
                     }
                 }
             } else {
@@ -1107,7 +1122,10 @@ namespace vMenuClient {
 
             // Calculate impact of gravity force
             freeFallTime += deltaTime;                    // Increase free fall time
-            freeFallTime -= ((drone.acceleration * GRAVITY_RECOVERY_MULTIPLIER) * deltaTime);    // Free fall time is decreased when drone is accelerated
+            float normalizeGravity = (float) Math.Cos( (double) Vector3.Normalize(QuaternionToEuler(drone.rotation)).Y * DegToRad);
+            normalizeGravity += (float) Math.Cos((double)Vector3.Normalize(QuaternionToEuler(drone.rotation)).X * DegToRad);
+            normalizeGravity /= 2;
+            freeFallTime -= ((drone.acceleration * GRAVITY_RECOVERY_MULTIPLIER) * deltaTime * normalizeGravity );    // Free fall time is decreased when drone is accelerated
             freeFallTime = (freeFallTime < 0f) ? (0f) : (freeFallTime);
             drone.downVelocity = GRAVITY_CONST * freeFallTime;  // v = at
 
@@ -1115,7 +1133,6 @@ namespace vMenuClient {
             drone.velocity += droneCamera.ForwardVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;    // Split acceleration to 2 axes to
             drone.velocity -= droneCamera.UpVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;         // make camera tilted 45 degrees compared to drone
             drone.velocity -= droneCamera.ForwardVector * drone.deceleration * DRONE_AGILITY_VEL * deltaTime;
-            //if (drone.velocity.Length() < HOVER_MULT * deltaTime) { drone.downVelocity *= (drone.velocity.Length() / HOVER_MULT * deltaTime); } // Make drone hover at low speeds
             // Acount for air resistance
             drone.velocity -= drone.velocity * DRONE_DRAG;
 
@@ -1123,7 +1140,8 @@ namespace vMenuClient {
             ClampDroneVelocity();
 
             // Update camera position based on values
-            droneCamera.Position -= Vector3.ForwardLH * drone.downVelocity + drone.velocity;
+            Vector3 deltaPos = Vector3.ForwardLH * drone.downVelocity + drone.velocity;
+            droneCamera.Position -= deltaPos;
         }
 
         private void ClampDroneVelocity() {
