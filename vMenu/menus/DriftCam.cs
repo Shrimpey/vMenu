@@ -1008,11 +1008,12 @@ namespace vMenuClient {
         // Drone parameters, tune them here
         private const float GRAVITY_CONST = 10.8f;       // Gravity force constant ///9.8f
         private const float TIMESTEP_DELIMITER = 80.15f;   // Less - gravity is stronger ///60.15f
-        private const float DRONE_DRAG = 0.0050f;        // Air resistance ///0.0015f
+        private const float DRONE_DRAG = 0.0020f;        // Air resistance ///0.0015f
         private const float DRONE_AGILITY_ROT = 8.5f;   // How quick is rotational response of the drone ///6.5f
         private const float DRONE_AGILITY_VEL = 60f; // How quick is velocity and acceleration response ///30f
         private const float DRONE_MAX_VEL = 29f;       // Max drone velocity in an axis ///39f
         private const float GRAVITY_RECOVERY_MULTIPLIER = 6.75f;   // How quickly can drone regain acceleration after free fall ///10.75f
+        private const float TILT_ANGLE = 35f; // Angle of tilt in degrees, keep in 0-45 range
 
         // Time of free fall, the longer fall the higher gravity down vector
         private static float freeFallTime = 0f;
@@ -1122,17 +1123,21 @@ namespace vMenuClient {
 
             // Calculate impact of gravity force
             freeFallTime += deltaTime;                    // Increase free fall time
-            float normalizeGravity = (float) Math.Cos( (double) Vector3.Normalize(QuaternionToEuler(drone.rotation)).Y * DegToRad);
-            normalizeGravity += (float) Math.Cos((double)Vector3.Normalize(QuaternionToEuler(drone.rotation)).X * DegToRad);
-            normalizeGravity /= 2;
+            float normalizeGravity = (float) Math.Cos( (double) QuaternionToEuler(drone.rotation).Y * DegToRad);
+            normalizeGravity *= (float) Math.Cos((double) QuaternionToEuler(drone.rotation).X * DegToRad);
+            normalizeGravity = (normalizeGravity < 0f) ? (0f) : (normalizeGravity);
             freeFallTime -= ((drone.acceleration * GRAVITY_RECOVERY_MULTIPLIER) * deltaTime * normalizeGravity );    // Free fall time is decreased when drone is accelerated
             freeFallTime = (freeFallTime < 0f) ? (0f) : (freeFallTime);
             drone.downVelocity = GRAVITY_CONST * freeFallTime;  // v = at
 
+            float staticTilt = (float)Math.Tan((double)(TILT_ANGLE * DegToRad));
+
             // Calculate velocity in each direction based on acceleration
-            drone.velocity += droneCamera.ForwardVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;    // Split acceleration to 2 axes to
-            drone.velocity -= droneCamera.UpVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;         // make camera tilted 45 degrees compared to drone
-            drone.velocity -= droneCamera.ForwardVector * drone.deceleration * DRONE_AGILITY_VEL * deltaTime;
+            drone.velocity += droneCamera.ForwardVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;
+            drone.velocity -= droneCamera.UpVector * drone.acceleration * DRONE_AGILITY_VEL * (staticTilt/2f) * deltaTime;
+            // Opposite thing based on deceleration
+            drone.velocity -= droneCamera.ForwardVector * drone.deceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;
+            drone.velocity += droneCamera.UpVector * drone.deceleration * DRONE_AGILITY_VEL * (staticTilt / 2f) * deltaTime;
             // Acount for air resistance
             drone.velocity -= drone.velocity * DRONE_DRAG;
 
