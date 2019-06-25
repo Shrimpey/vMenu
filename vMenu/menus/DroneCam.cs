@@ -18,7 +18,7 @@ namespace vMenuClient {
         public DroneCam() {
             Tick += RunDroneCam;
         }
-        
+
         private void CreateMenu() {
             menu = new Menu(Game.Player.Name, "Drone Camera parameters");
 
@@ -82,7 +82,7 @@ namespace vMenuClient {
             MenuListItem rotationMultZList = new MenuListItem("Yaw multiplier", rotationMultZValues, 20, "How responsive drone is in terms of rotation (yaw).") {
                 ShowColorPanel = false
             };
-            
+
             // Max velocity
             List<string> maxVelocityValues = new List<string>();
             for (float i = 20.0f; i <= 40.0f; i += 1f) {
@@ -101,9 +101,9 @@ namespace vMenuClient {
             };
 
             #endregion
-            
+
             #region adding menu items
-            
+
             menu.AddMenuItem(gravityMultList);
             menu.AddMenuItem(gravityRecoveryMultList);
             menu.AddMenuItem(dragMultList);
@@ -150,7 +150,7 @@ namespace vMenuClient {
                 }
             };
 
-                #endregion
+            #endregion
         }
 
         /// <summary>
@@ -165,7 +165,7 @@ namespace vMenuClient {
         }
 
         #region drone camera
-        
+
         private DroneInfo drone;
 
         // Parameters for user to tune
@@ -197,16 +197,12 @@ namespace vMenuClient {
             if (MainMenu.EnhancedCamMenu != null) {
                 if (MainMenu.EnhancedCamMenu.DroneCam) {
                     if (MainMenu.EnhancedCamMenu.droneCamera != null) {
-                        //Debug.WriteLine("Before tick:");
-                        //DumpDebug();
                         // Get user input
                         UpdateDroneControls();
 
                         // Update camera properties
                         UpdateDronePosition();
                         UpdateDroneRotation();
-                        //Debug.WriteLine("After tick:");
-                        //DumpDebug();
                     } else {
                         MainMenu.EnhancedCamMenu.ResetCameras();
                         MainMenu.EnhancedCamMenu.droneCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
@@ -279,9 +275,9 @@ namespace vMenuClient {
             float deltaRoll = drone.controlRoll * DRONE_AGILITY_ROT * 1.1f * rotationMult.Y;
 
             // Rotate quaternion
-            drone.rotation *= Quaternion.RotationAxis(Vector3.Up, deltaRoll         * EnhancedCamera.CamMath.DegToRad);
-            drone.rotation *= Quaternion.RotationAxis(Vector3.Right, deltaPitch     * EnhancedCamera.CamMath.DegToRad);
-            drone.rotation *= Quaternion.RotationAxis(Vector3.ForwardLH, deltaYaw   * EnhancedCamera.CamMath.DegToRad);
+            drone.rotation *= Quaternion.RotationAxis(Vector3.Up, deltaRoll * EnhancedCamera.CamMath.DegToRad);
+            drone.rotation *= Quaternion.RotationAxis(Vector3.Right, deltaPitch * EnhancedCamera.CamMath.DegToRad);
+            drone.rotation *= Quaternion.RotationAxis(Vector3.ForwardLH, deltaYaw * EnhancedCamera.CamMath.DegToRad);
 
             // Update camera rotation based on values
             Vector3 eulerRot = EnhancedCamera.CamMath.QuaternionToEuler(drone.rotation);
@@ -293,8 +289,8 @@ namespace vMenuClient {
 
             // Calculate impact of gravity force
             freeFallTime += deltaTime;                    // Increase free fall time
-            float normalizeGravity = Cos(EnhancedCamera.CamMath.QuaternionToEuler(drone.rotation).Y * EnhancedCamera.CamMath.DegToRad);
-            normalizeGravity *= Cos(EnhancedCamera.CamMath.QuaternionToEuler(drone.rotation).X * EnhancedCamera.CamMath.DegToRad);
+            float normalizeGravity = (float)Math.Cos((double)(EnhancedCamera.CamMath.QuaternionToEuler(drone.rotation).Y * EnhancedCamera.CamMath.DegToRad));
+            normalizeGravity *= (float)Math.Cos((double)(EnhancedCamera.CamMath.QuaternionToEuler(drone.rotation).X * EnhancedCamera.CamMath.DegToRad));
             normalizeGravity = (normalizeGravity < 0f) ? (0f) : (normalizeGravity);
             if (normalizeGravity.ToString() == "NaN") { normalizeGravity = 0f; }    // Gimbal lock fix
             freeFallTime -= ((drone.acceleration * GRAVITY_RECOVERY_MULTIPLIER * gravityRecoveryMult) * deltaTime * normalizeGravity);    // Free fall time is decreased when drone is accelerated
