@@ -197,12 +197,16 @@ namespace vMenuClient {
             if (MainMenu.EnhancedCamMenu != null) {
                 if (MainMenu.EnhancedCamMenu.DroneCam) {
                     if (MainMenu.EnhancedCamMenu.droneCamera != null) {
+                        //Debug.WriteLine("Before tick:");
+                        //DumpDebug();
                         // Get user input
                         UpdateDroneControls();
 
                         // Update camera properties
                         UpdateDronePosition();
                         UpdateDroneRotation();
+                        //Debug.WriteLine("After tick:");
+                        //DumpDebug();
                     } else {
                         MainMenu.EnhancedCamMenu.ResetCameras();
                         MainMenu.EnhancedCamMenu.droneCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
@@ -227,7 +231,6 @@ namespace vMenuClient {
         private struct DroneInfo {
             // User input
             public float acceleration;
-            public float deceleration;
             public float controlPitch;
             public float controlYaw;
             public float controlRoll;
@@ -237,11 +240,23 @@ namespace vMenuClient {
             public Quaternion rotation;     // Drone rotation in quaternion
         }
 
+        private void DumpDebug() {
+            Debug.WriteLine(drone.acceleration.ToString() +
+                            drone.controlPitch.ToString() +
+                            drone.controlYaw.ToString() +
+                            drone.controlRoll.ToString() +
+                            drone.velocity.ToString() +
+                            drone.downVelocity.ToString() +
+                            drone.rotation.X.ToString() +
+                            drone.rotation.Y.ToString() +
+                            drone.rotation.Z.ToString() +
+                            drone.rotation.W.ToString()
+                            );
+        }
+
         // Get user input for drone camera
         private void UpdateDroneControls() {
             drone.acceleration = ((float)(GetControlValue(0, 71) / 255f) - 0.5f);
-            drone.deceleration = (float)(GetControlValue(0, 72) / 255f) - 0.5f;
-
             drone.controlPitch = ((float)(GetControlValue(1, 2) / 255f) - 0.5f);
             drone.controlYaw = -((float)(GetControlValue(1, 9) / 255f) - 0.5f);
             drone.controlRoll = ((float)(GetControlValue(1, 1) / 255f) - 0.5f);
@@ -273,7 +288,10 @@ namespace vMenuClient {
         }
 
         private void UpdateDronePosition() {
-            float deltaTime = Timestep() / TIMESTEP_DELIMITER;
+            float deltaTime = 0f;
+            if (Timestep() > 0f) {
+                deltaTime = Timestep() / TIMESTEP_DELIMITER;
+            }
 
             // Calculate impact of gravity force
             freeFallTime += deltaTime;                    // Increase free fall time
@@ -289,9 +307,6 @@ namespace vMenuClient {
             // Calculate velocity in each direction based on acceleration
             drone.velocity += MainMenu.EnhancedCamMenu.droneCamera.ForwardVector * drone.acceleration * DRONE_AGILITY_VEL * velocityMult * 0.5f * deltaTime;
             drone.velocity -= MainMenu.EnhancedCamMenu.droneCamera.UpVector * drone.acceleration * DRONE_AGILITY_VEL * velocityMult * (staticTilt / 2f) * deltaTime;
-            // Opposite thing based on deceleration
-            drone.velocity -= MainMenu.EnhancedCamMenu.droneCamera.ForwardVector * drone.deceleration * DRONE_AGILITY_VEL * velocityMult * 0.5f * deltaTime;
-            drone.velocity += MainMenu.EnhancedCamMenu.droneCamera.UpVector * drone.deceleration * DRONE_AGILITY_VEL * velocityMult * (staticTilt / 2f) * deltaTime;
             // Acount for air resistance
             drone.velocity -= drone.velocity * DRONE_DRAG * dragMult;
 
