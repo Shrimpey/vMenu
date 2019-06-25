@@ -62,7 +62,9 @@
     <Compile Include="MainMenu.cs" />
     <Compile Include="menus\About.cs" />
     <Compile Include="menus\BannedPlayers.cs" />
-    <Compile Include="menus\DriftCam.cs" />
+    <Compile Include="menus\EnhancedCamera.cs" />
+    <Compile Include="menus\CustomCam.cs" />
+    <Compile Include="menus\DroneCam.cs" />
     <Compile Include="menus\MiscSettings.cs" />
     <Compile Include="menus\MpPedCustomization.cs" />
     <Compile Include="menus\OnlinePlayers.cs" />

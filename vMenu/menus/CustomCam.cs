@@ -28,69 +28,43 @@ namespace vMenuClient {
             return pitch;
         }
         public static bool OverClampCheck(float roll, float pitch) {
-            return (    (roll < ROLL_MIN) ||
+            return ((roll < ROLL_MIN) ||
                         (roll > ROLL_MAX) ||
                         (pitch < PITCH_MIN) ||
-                        (pitch > PITCH_MAX) );
+                        (pitch > PITCH_MAX));
         }
         public static bool CrashCheck(int veh) {
-            return (    (GetEntityRoll(veh) < ROLL_MIN) ||
+            return ((GetEntityRoll(veh) < ROLL_MIN) ||
                         (GetEntityRoll(veh) > ROLL_MAX) ||
                         (GetEntityPitch(veh) < PITCH_MIN) ||
                         (GetEntityPitch(veh) > PITCH_MAX));
         }
     }
 
-    public class DriftCam : BaseScript {
+    public class CustomCam : BaseScript {
 
         #region variables
 
         private Menu menu;
-        public bool DriftAngularCam { get; private set; } = false;
-        public bool ChaseCam { get; private set; } = false;
-        public bool DroneCam { get; private set; } = false;
-
-        private MenuCheckboxItem driftAngularCam;
-        private MenuCheckboxItem chaseCam;
-        private MenuCheckboxItem droneCam;
-
-        private static Camera driftCamera = null;
-        private static Camera chaseCamera = null;
-        private static Camera droneCamera = null;
 
         private Dictionary<MenuItem, KeyValuePair<string, CameraInfo>> scMenuItems = new Dictionary<MenuItem, KeyValuePair<string, CameraInfo>>();
         private Menu savedCamerasMenu;
         private Menu selectedCameraMenu = new Menu("Manage Camera", "Manage this saved camera.");
         private static KeyValuePair<string, CameraInfo> currentlySelectedCamera = new KeyValuePair<string, CameraInfo>();
 
-        private static float userTilt = 0.0f;
-        private static float userYaw = 0.0f;
-        private static bool userLookBehind = false;
-
         #endregion
 
         // Constructor
-        public DriftCam() {
+        public CustomCam() {
             Tick += RunDriftCam;
             Tick += RunChaseCam;
-            Tick += RunDroneCam;
-
-            Tick += GeneralUpdate;
-            Tick += SlowUpdate;
         }
 
         private void CreateMenu() {
-            // Create the menu.
-            menu = new Menu(Game.Player.Name, "Enhanced Camera");
+            menu = new Menu(Game.Player.Name, "Custom Camera parameters");
 
             #region checkbox items
 
-            // Enabling angular drift cam
-            driftAngularCam = new MenuCheckboxItem("Enable lead camera", "Make sure you have disabled X and Y camera lock in misc settings.", false);
-            // Enabling chase cam
-            chaseCam = new MenuCheckboxItem("Enable chase camera", "Locks to a target in front, switches to regular cam if target not in range. Make sure you have disabled X and Y camera lock in misc settings.", false);
-            // Enabling chase cam
-            droneCam = new MenuCheckboxItem("[WIP] Enable drone camera", "Free drone camera to spectate/fly around", false);
             // Lock position offset
             MenuCheckboxItem lockPosOffsetCheckbox = new MenuCheckboxItem("Lock position offset", "Locks position offset, useful when sticking camera to the car - on top of hood, as FPV cam, etc.", false);
             // Linear position offset
@@ -189,7 +163,7 @@ namespace vMenuClient {
             MenuListItem customCamUpOffsetList = new MenuListItem("Z offset", customCamUpOffsetValues, 141, "Custom camera offset in up direction. (-5,8)") {
                 ShowColorPanel = false
             };
-            
+
             List<string> chaseCamMaxAngleValues = new List<string>();
             for (float i = 25; i <= 360; i += 5) {
                 chaseCamMaxAngleValues.Add(i.ToString());
@@ -202,9 +176,6 @@ namespace vMenuClient {
 
             #region adding menu items
             // Checkboxes
-            menu.AddMenuItem(driftAngularCam);
-            menu.AddMenuItem(chaseCam);
-            menu.AddMenuItem(droneCam);
             menu.AddMenuItem(lockPosOffsetCheckbox);
             menu.AddMenuItem(linearPosCheckbox);
             menu.AddMenuItem(pedLockCheckbox);
@@ -224,7 +195,7 @@ namespace vMenuClient {
             menu.AddMenuItem(customCamUpOffsetList);
             menu.AddMenuItem(customCamSideOffsetList);
 
-            DisableMenus();
+            //MainMenu.EnhancedCamMenu.DisableMenus();
 
             #endregion
 
@@ -273,17 +244,17 @@ namespace vMenuClient {
 
             selectedCameraMenu.OnItemSelect += async (sender, item, index) => {
                 if (item == spawnCamera) {
-                    ResetCameras();
+                    MainMenu.EnhancedCamMenu.ResetCameras();
                     SpawnSavedCamera();
 
-                    if (DriftAngularCam) {
-                        driftCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = driftCamera;
-                        driftCamera.IsActive = true;
-                    } else if (ChaseCam) {
-                        chaseCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = chaseCamera;
-                        chaseCamera.IsActive = true;
+                    if (MainMenu.EnhancedCamMenu.LeadCam) {
+                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
+                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
+                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
+                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
+                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                     }
 
                     // Update menu stuff according to loaded values
@@ -338,52 +309,6 @@ namespace vMenuClient {
 
             // Handle checkbox
             menu.OnCheckboxChange += (_menu, _item, _index, _checked) => {
-                if (_item == driftAngularCam) {
-
-                    DriftAngularCam = _checked;
-                    MainMenu.DriftCamMenu.chaseCam.Checked = false;
-                    MainMenu.DriftCamMenu.droneCam.Checked = false;
-                    ChaseCam = false;
-                    DroneCam = false;
-
-                    if (!_checked) {
-                        DisableMenus();
-                        ResetCameras();
-                    } else {
-                        EnableMenus();
-                    }
-
-                }
-                if (_item == chaseCam) {
-
-                    ChaseCam = _checked;
-                    MainMenu.DriftCamMenu.driftAngularCam.Checked = false;
-                    MainMenu.DriftCamMenu.droneCam.Checked = false;
-                    DriftAngularCam = false;
-                    DroneCam = false;
-
-                    if (!_checked) {
-                        DisableMenus();
-                        ResetCameras();
-                    } else {
-                        EnableMenus();
-                        target = GetClosestVehicle(2000, maxAngle);
-                    }
-                }
-                if (_item == droneCam) {
-
-                    DroneCam = _checked;
-                    MainMenu.DriftCamMenu.chaseCam.Checked = false;
-                    MainMenu.DriftCamMenu.driftAngularCam.Checked = false;
-                    ChaseCam = false;
-                    DriftAngularCam = false;
-
-                    if (!_checked) {
-                        DisableMenus();
-                        ResetCameras();
-                    }
-
-                }
                 if (_item == linearPosCheckbox) {
                     linearPosOffset = _checked;
                 }
@@ -419,64 +344,65 @@ namespace vMenuClient {
                     maxAngle = (float)(_newIndex * 5f + 25f);
                 }
                 if (_listItem == customCamFOVList) {
-                    if ((driftCamera != null) || (chaseCamera != null))
-                        ResetCameras();
+                    if ((MainMenu.EnhancedCamMenu.driftCamera != null) || (MainMenu.EnhancedCamMenu.chaseCamera != null))
+                        MainMenu.EnhancedCamMenu.ResetCameras();
                     fov = (float)(_newIndex * 1f + 20.0f);
-                    if (DriftAngularCam) {
-                        driftCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = driftCamera;
-                        driftCamera.IsActive = true;
-                    } else if (ChaseCam) {
-                        chaseCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = chaseCamera;
-                        chaseCamera.IsActive = true;
+                    if (MainMenu.EnhancedCamMenu.LeadCam) {
+                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
+                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
+                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
+                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
+                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                     }
                 }
                 if (_listItem == customCamForwardOffsetList) {
-                    if ((driftCamera != null) || (chaseCamera != null))
-                        ResetCameras();
+                    if ((MainMenu.EnhancedCamMenu.driftCamera != null) || (MainMenu.EnhancedCamMenu.chaseCamera != null))
+                        MainMenu.EnhancedCamMenu.ResetCameras();
                     forwardOffset = (float)(_newIndex * 0.05f - 8f);
-                    if (DriftAngularCam) {
-                        driftCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = driftCamera;
-                        driftCamera.IsActive = true;
-                    } else if (ChaseCam) {
-                        chaseCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = chaseCamera;
-                        chaseCamera.IsActive = true;
+                    if (MainMenu.EnhancedCamMenu.LeadCam) {
+                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
+                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
+                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
+                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
+                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                     }
                 }
                 if (_listItem == customCamSideOffsetList) {
-                    if ((driftCamera != null) || (chaseCamera != null))
-                        ResetCameras();
+                    if ((MainMenu.EnhancedCamMenu.driftCamera != null) || (MainMenu.EnhancedCamMenu.chaseCamera != null))
+                        MainMenu.EnhancedCamMenu.ResetCameras();
                     sideOffset = (float)(_newIndex * 0.05f - 5f);
-                    if (DriftAngularCam) {
-                        driftCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = driftCamera;
-                        driftCamera.IsActive = true;
-                    } else if (ChaseCam) {
-                        chaseCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = chaseCamera;
-                        chaseCamera.IsActive = true;
+                    if (MainMenu.EnhancedCamMenu.LeadCam) {
+                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
+                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
+                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
+                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
+                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                     }
                 }
                 if (_listItem == customCamUpOffsetList) {
-                    if ((driftCamera != null) || (chaseCamera != null))
-                        ResetCameras();
+                    if ((MainMenu.EnhancedCamMenu.driftCamera != null) || (MainMenu.EnhancedCamMenu.chaseCamera != null))
+                        MainMenu.EnhancedCamMenu.ResetCameras();
                     upOffset = (float)(_newIndex * 0.05f - 5f);
-                    if (DriftAngularCam) {
-                        driftCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = driftCamera;
-                        driftCamera.IsActive = true;
-                    } else if (ChaseCam) {
-                        chaseCamera = CreateNonAttachedCamera();
-                        World.RenderingCamera = chaseCamera;
-                        chaseCamera.IsActive = true;
+                    if (MainMenu.EnhancedCamMenu.LeadCam) {
+                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
+                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
+                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
+                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
+                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                     }
                 }
             };
 
             #endregion
+
         }
 
         /// <summary>
@@ -490,231 +416,9 @@ namespace vMenuClient {
             return menu;
         }
 
-        #region math functions
-
-        private const float DegToRad = (float)Math.PI / 180.0f;
-
-        /// <summary>
-        /// Lerps two float values by a step
-        /// </summary>
-        /// <returns>lerped float value in between two supplied</returns>
-        private float Lerp(float current, float target, float by) {
-            return current * (1 - by) + target * by;
-        }
-
-        /// <summary>
-        /// Calculates angle between two vectors
-        /// </summary>
-        /// <returns>Angle between vectors in degrees</returns>
-        private float AngleBetween(Vector3 a, Vector3 b) {
-            float sinA = a.X * b.Y - b.X * a.Y;
-            float cosA = a.X * b.X + a.Y * b.Y;
-            return (float)Math.Atan2(sinA, cosA) / DegToRad;
-        }
-
-        private Vector3 RotateRadians(Vector3 v, float degree) {
-            float radians = DegToRad * degree;
-            float ca = (float)Math.Cos(radians);
-            float sa = (float)Math.Sin(radians);
-            return new Vector3(ca * v.X - sa * v.Y, sa * v.X + ca * v.Y, v.Z);
-        }
-
-        private Vector3 RotateAroundAxis(Vector3 v, Vector3 axis, float angle) {
-            return Vector3.TransformCoordinate(v, Matrix.RotationAxis(Vector3.Normalize(axis), angle));
-        }
-
-        private float Fmod(float a, float b) {
-            return (a - b * (float)Math.Floor(a / b));
-        }
-
-        private Vector3 QuaternionToEuler(Quaternion q) {
-            double r11 = (double) (-2 * (q.X * q.Y - q.W * q.Z));
-            double r12 = (double) (q.W * q.W - q.X * q.X + q.Y * q.Y - q.Z * q.Z);
-            double r21 = (double) (2 * (q.Y * q.Z + q.W * q.X));
-            double r31 = (double) (-2 * (q.X * q.Z - q.W * q.Y));
-            double r32 = (double) (q.W * q.W - q.X * q.X - q.Y * q.Y + q.Z * q.Z);
-
-            float ax = (float) Math.Asin(r21);
-            float ay = (float) Math.Atan2(r31, r32);
-            float az = (float) Math.Atan2(r11, r12);
-
-            return new Vector3(ax / DegToRad, ay / DegToRad, az / DegToRad);
-        }
-
-        #endregion
-
-        #region camera switching
-        private void SwitchCameraToDrift() {
-            SwitchToGameplayCam();
-            MainMenu.DriftCamMenu.DriftAngularCam = true;
-            EnableMenus();
-            MainMenu.DriftCamMenu.driftAngularCam.Checked = true;
-        }
-
-        private void SwitchCameraToChase() {
-            SwitchToGameplayCam();
-            MainMenu.DriftCamMenu.ChaseCam = true;
-            EnableMenus();
-            MainMenu.DriftCamMenu.chaseCam.Checked = true;
-        }
-
-        private void SwitchToGameplayCam() {
-            MainMenu.DriftCamMenu.DriftAngularCam = false;
-            MainMenu.DriftCamMenu.ChaseCam = false;
-            MainMenu.DriftCamMenu.DroneCam = false;
-            DisableMenus();
-            ResetCameras();
-            MainMenu.DriftCamMenu.driftAngularCam.Checked = false;
-            MainMenu.DriftCamMenu.chaseCam.Checked = false;
-            MainMenu.DriftCamMenu.droneCam.Checked = false;
-        }
-
-        /// <summary>
-        /// Disables all the submenus except for three first checkboxes
-        /// </summary>
-        private void DisableMenus() {
-            // Disable everything
-            List<MenuItem> items = GetMenu().GetMenuItems();
-            foreach (MenuItem item in items) {
-                item.Enabled = false;
-            }
-            // Reenable Drift Cam, Chase Cam fields
-            // as well as save button
-            if (items.Count > 3) {
-                items[0].Enabled = true;
-                items[1].Enabled = true;
-                items[2].Enabled = true;
-            } else {
-                Notify.Error("Your menu does not seem to have any submenus, something got corrupted.");
-            }
-        }
-
-        /// <summary>
-        /// Reenables all the submenus
-        /// </summary>
-        private void EnableMenus() {
-            // Enable everything
-            List<MenuItem> submenus = menu.GetMenuItems();
-            foreach (MenuItem submenu in submenus) {
-                submenu.Enabled = true;
-            }
-        }
-
-        #endregion
-
-        #region camera operations
-
-        /// <summary>
-        /// Checks whether any of the custom camera is active, used
-        /// to disable background activity in OnTick functions
-        /// </summary>
-        /// <returns></returns>
-        private bool IsCustomCameraEnabled() {
-            if (MainMenu.DriftCamMenu != null)
-                return (MainMenu.DriftCamMenu.DriftAngularCam || MainMenu.DriftCamMenu.ChaseCam || MainMenu.DriftCamMenu.DroneCam);
-            else
-                return false;
-        }
-
-        /// <summary>
-        /// Creates a base camera for lead and chase cam that is not
-        /// attached to any entity
-        /// </summary>
-        /// <returns></returns>
-        private Camera CreateNonAttachedCamera() {
-            // Create new camera as a copy of GameplayCamera
-            Camera newCam = World.CreateCamera(GameplayCamera.Position, GameplayCamera.Rotation, fov);
-            newCam.FarClip = GetGameplayCamFarClip();
-            newCam.DepthOfFieldStrength = 50f;
-            newCam.MotionBlurStrength = 0.1f;
-            newCam.IsActive = true;
-            return newCam;
-        }
-
-        /// <summary>
-        /// Used to reset lead and chase camera
-        /// </summary>
-        /// <returns></returns>
-        private void ResetCameras() {
-            World.RenderingCamera = null;
-            driftCamera = null;
-            chaseCamera = null;
-            droneCamera = null;
-            World.DestroyAllCameras();
-            SetFocusArea(GameplayCamera.Position.X, GameplayCamera.Position.Y, GameplayCamera.Position.Z, 0, 0, 0);
-            EnableGameplayCam(true);
-            UnlockMinimapAngle();
-            ClearFocus();
-        }
-
-        private const float USER_YAW_RETURN_INTERPOLATION = 0.015f;
-        private static float yawReturnTimer = 0f;
-
-        /// <summary>
-        /// Additional Update function, currently takes care
-        /// of user's analog stick up and down movement to
-        /// control the camera tilt
-        /// </summary>
-        /// <returns></returns>
-        private async Task GeneralUpdate() {
-            if (IsCustomCameraEnabled()) {
-                // User controls the tilt offset
-                float tiltControl = ((float)(GetControlValue(1, 2) / 256f) - 0.5f);
-                float yawControl = ((float)(GetControlValue(1, 1) / 256f) - 0.5f);
-
-                userLookBehind = IsControlPressed(1, 26);
-
-                if ((Math.Abs(tiltControl) > 0.01f) || (Math.Abs(yawControl) > 0.01f)) {
-                    //Account for difference in gamepad and mouse acceleration
-                    if (IsInputDisabled(1)) {
-                        userTilt -= tiltControl * 12f;
-                        userYaw -= yawControl * 32;
-                    } else {
-                        userTilt -= tiltControl;
-                        userYaw -= yawControl * 4f;
-                    }
-                    userTilt = (Math.Abs(userTilt) > 80f) ? (Math.Sign(userTilt) * 80f) : (userTilt);
-
-                    userYaw = (Fmod((userYaw + 180.0f), 360.0f) - 180.0f);
-                    yawReturnTimer = 1f;    // Set the timer before yaw starts to return to 0f
-
-                    // Slow return of user yaw to 0f
-                } else if ((Math.Abs(yawControl) <= 0.01f) && (Math.Abs(userYaw) > (USER_YAW_RETURN_INTERPOLATION + 0.01f))) {
-                    // Only return to 0f if user is not moving
-                    int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
-                    if (yawReturnTimer <= 0f) {
-                        float speedModifier = (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) < 3f) ? (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) / 3f) : (1f);
-                        userYaw = Math.Sign(userYaw) * Lerp(Math.Abs(userYaw), 0f, USER_YAW_RETURN_INTERPOLATION * speedModifier);
-                    } else {
-                        yawReturnTimer -= USER_YAW_RETURN_INTERPOLATION;
-                    }
-                } else {
-                    await Delay(0);
-                }
-            } else {
-                await Delay(1);
-            }
-        }
-
-        private async Task SlowUpdate() {
-            // Refocus render distance of the camera (too heavy for normal update)
-            if (MainMenu.DriftCamMenu != null) {
-                if (MainMenu.DriftCamMenu.DroneCam) {
-                    if (droneCamera != null) {
-                        SetFocusArea(droneCamera.Position.X, droneCamera.Position.Y, droneCamera.Position.Z, 0, 0, 0);
-                        await Delay(100);
-                    }
-                }
-            } else {
-                await Delay(10);
-            }
-        }
-
-        #endregion
-
         #region custom camera static variables
 
-        private static float fov = 63.0f;
+        public static float fov = 63.0f;
         private static float forwardOffset = -4.75f;
         private static float sideOffset = 0.0f;
         private static float upOffset = 2.05f;
@@ -725,7 +429,7 @@ namespace vMenuClient {
         private static float angularVelOld = 0f;
         private static float posInterpolation = 0.5f;
         private static float oldPosXOffset = 0f;
-        private static float maxAngle = 360f;
+        public static float maxAngle = 360f;
 
         private static float cameraRollInterpolation = 0.1f;
         private static float cameraPitchInterpolation = 0.1f;
@@ -747,17 +451,17 @@ namespace vMenuClient {
         /// </summary>
         /// <returns></returns>
         private async Task RunDriftCam() {
-            if (MainMenu.DriftCamMenu != null) {
-                if (MainMenu.DriftCamMenu.DriftAngularCam) {
+            if (MainMenu.EnhancedCamMenu != null) {
+                if (MainMenu.EnhancedCamMenu.LeadCam) {
                     int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
                     if (vehicleEntity > 0) {
-                        if (driftCamera != null) {
+                        if (MainMenu.EnhancedCamMenu.driftCamera != null) {
                             // Get vehicle's angular velocity
                             float angularVel = GetEntityRotationVelocity(vehicleEntity).Z;
                             // Keep it in reasonable range
                             angularVel = (angularVel > MAX_ANG_VEL_OFFSET) ? (MAX_ANG_VEL_OFFSET) : (angularVel);
                             // Lerp to smooth the camera transition
-                            angularVel = Lerp(angularVelOld, angularVel, angCamInterpolation);
+                            angularVel = EnhancedCamera.CamMath.Lerp(angularVelOld, angularVel, angCamInterpolation);
                             // Save the value to lerp with it in the next frame
                             angularVelOld = angularVel;
 
@@ -769,7 +473,7 @@ namespace vMenuClient {
 
                             // Setting the position offset also based on angular velocity
                             if (!lockOffsetPos) {
-                                oldPosXOffset = Lerp(oldPosXOffset, finalRotation, posInterpolation);
+                                oldPosXOffset = EnhancedCamera.CamMath.Lerp(oldPosXOffset, finalRotation, posInterpolation);
                             } else {
                                 oldPosXOffset = 0f;
                             }
@@ -777,11 +481,11 @@ namespace vMenuClient {
                             // Get the static offset based on user's input
                             Vector3 staticPosition = Vector3.Zero;
                             if (pedLock) {
-                                staticPosition =    veh.ForwardVector * forwardOffset +
+                                staticPosition = veh.ForwardVector * forwardOffset +
                                                     veh.RightVector * sideOffset +
                                                     Vector3.ForwardLH * upOffset;
                             } else {
-                                staticPosition =    veh.ForwardVector * forwardOffset +
+                                staticPosition = veh.ForwardVector * forwardOffset +
                                                     veh.RightVector * sideOffset +
                                                     veh.UpVector * upOffset;
                             }
@@ -790,20 +494,20 @@ namespace vMenuClient {
                             // offset and the offset resulting from rotating the camera around the car
                             if (!linearPosOffset) {
                                 if (oldPosXOffset != 0f) {
-                                    float rotation = oldPosXOffset + userYaw;
+                                    float rotation = oldPosXOffset + EnhancedCamera.userYaw;
                                     if (pedLock) {
-                                        driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, Vector3.ForwardLH, rotation * DegToRad);
+                                        MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, Vector3.ForwardLH, rotation * EnhancedCamera.CamMath.DegToRad);
                                     } else {
-                                        driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, rotation * DegToRad);
+                                        MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, rotation * EnhancedCamera.CamMath.DegToRad);
                                     }
-                                    if (userLookBehind) { driftCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, 179f * DegToRad); }
+                                    if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, 179f * EnhancedCamera.CamMath.DegToRad); }
                                 } else {
-                                    driftCamera.Position = veh.Position + staticPosition;
-                                    if (userLookBehind) { driftCamera.Position = veh.Position + staticPosition - (veh.RightVector * sideOffset) + veh.ForwardVector * 3.5f + veh.UpVector * 0.5f; }
+                                    MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition;
+                                    if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition - (veh.RightVector * sideOffset) + veh.ForwardVector * 3.5f + veh.UpVector * 0.5f; }
                                 }
                             } else {
-                                driftCamera.Position = veh.Position + staticPosition + veh.RightVector * oldPosXOffset / 12f;
-                                if (userLookBehind) { driftCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f + veh.UpVector * 0.5f; }
+                                MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition + veh.RightVector * oldPosXOffset / 12f;
+                                if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f + veh.UpVector * 0.5f; }
                             }
 
                             // Calculate target rotation as a heading in given range
@@ -813,31 +517,31 @@ namespace vMenuClient {
                             // Clamp values
                             if (CameraConstraints.CrashCheck(vehicleEntity)) {
                                 staticPosition = Vector3.ForwardLH * upOffset;
-                                driftCamera.Position = veh.Position + staticPosition;
-                                roll = Lerp(driftCamera.Rotation.Y, 0f, 0.1f);
-                                pitch = Lerp(driftCamera.Rotation.X, 0f, 0.1f);
+                                MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition;
+                                roll = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.Y, 0f, 0.1f);
+                                pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.X, 0f, 0.1f);
                                 pitch = CameraConstraints.ClampPitch(pitch);
                             } else {
                                 // Calculate smooth roll and pitch rotation
-                                roll = Lerp(driftCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
-                                pitch = Lerp(driftCamera.Rotation.X - userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
+                                roll = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
+                                pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.X - EnhancedCamera.userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
                                 roll = CameraConstraints.ClampRoll(roll);
                                 pitch = CameraConstraints.ClampPitch(pitch);
                             }
                             // Finalize the rotation
-                            float yaw = (userLookBehind)?(-newRot.Z + 179f) :(newRot.Z + userYaw);
-                            pitch *= (userLookBehind) ? (-1f) : (1f);
+                            float yaw = (EnhancedCamera.userLookBehind) ? (-newRot.Z + 179f) : (newRot.Z + EnhancedCamera.userYaw);
+                            pitch *= (EnhancedCamera.userLookBehind) ? (-1f) : (1f);
                             //driftCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
-                            SetCamRot(driftCamera.Handle, pitch + userTilt, roll, yaw, 2);
-                            
+                            SetCamRot(MainMenu.EnhancedCamMenu.driftCamera.Handle, pitch + EnhancedCamera.userTilt, roll, yaw, 2);
+
                             // Update minimap
-                            LockMinimapAngle((int)(Fmod(yaw, 360f)));
+                            LockMinimapAngle((int)(EnhancedCamera.CamMath.Fmod(yaw, 360f)));
                         } else {
                             // In case the camera is null - reset the cameras and reassign this camera
-                            ResetCameras();
-                            driftCamera = CreateNonAttachedCamera();
-                            World.RenderingCamera = driftCamera;
-                            driftCamera.IsActive = true;
+                            MainMenu.EnhancedCamMenu.ResetCameras();
+                            MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                            World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
+                            MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
                         }
                     }
                 }
@@ -854,7 +558,7 @@ namespace vMenuClient {
         /// Gets closest vehicle to Ped
         /// </summary>
         /// <returns>closest vehicle</returns>
-        Vehicle GetClosestVehicle(int maxDistance, float requiredAngle) {
+        public static Vehicle GetClosestVehicle(int maxDistance, float requiredAngle) {
             float smallestDistance = (float)maxDistance;
             Vehicle[] vehs = World.GetAllVehicles();
             Vehicle closestVeh = null;
@@ -868,7 +572,7 @@ namespace vMenuClient {
                         if ((distance <= smallestDistance) && (veh != null)) {
                             smallestDistance = distance;
                             Vector3 targetVec = GetOffsetFromEntityGivenWorldCoords(playerVeh, veh.Position.X, veh.Position.Y, veh.Position.Z);
-                            float angle = -AngleBetween(targetVec, new Vector3(0, 0.0001f, 0) + GetEntitySpeedVector(playerVeh, true));
+                            float angle = -EnhancedCamera.CamMath.AngleBetween(targetVec, new Vector3(0, 0.0001f, 0) + GetEntitySpeedVector(playerVeh, true));
                             // Make sure that target is in range given by angle
                             if (Math.Abs(angle) < requiredAngle) {
                                 closestVeh = veh;
@@ -880,7 +584,7 @@ namespace vMenuClient {
             return closestVeh;
         }
 
-        private static Vehicle target = null;
+        public static Vehicle target = null;
         private static int chaseCamOffset = 0;
 
         /// <summary>
@@ -890,12 +594,12 @@ namespace vMenuClient {
         /// </summary>
         /// <returns></returns>
         private async Task RunChaseCam() {
-            if (MainMenu.DriftCamMenu != null) {
-                if (MainMenu.DriftCamMenu.ChaseCam) {
+            if (MainMenu.EnhancedCamMenu != null) {
+                if (MainMenu.EnhancedCamMenu.ChaseCam) {
                     // Get player's vehicle
                     int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
                     if (vehicleEntity > 0) {
-                        if (chaseCamera != null) {
+                        if (MainMenu.EnhancedCamMenu.chaseCamera != null) {
 
                             // If target car is located
                             if (target != null) {
@@ -907,11 +611,11 @@ namespace vMenuClient {
                                                         target.Position.Z);
 
                                 // Get rotation to target vehicle
-                                float finalRotation = -AngleBetween(targetVec, new Vector3(0, 10, 0));
+                                float finalRotation = -EnhancedCamera.CamMath.AngleBetween(targetVec, new Vector3(0, 10, 0));
 
-                                if(Math.Abs(finalRotation) > maxAngle) {
+                                if (Math.Abs(finalRotation) > maxAngle) {
                                     target = null;
-                                    SwitchCameraToDrift();
+                                    MainMenu.EnhancedCamMenu.SwitchCameraToDrift();
                                     Notify.Info("Target exceeded angle limit, switching to Drift Cam", false);
                                     return;
                                 }
@@ -920,7 +624,7 @@ namespace vMenuClient {
                                     // Lerp target rotation
                                     // (1 - angCamInterpolation) instead of just interpolation so that camera
                                     // can be changed smoothly from lead cam to chase cam
-                                    finalRotation = Lerp(GetEntityHeading(chaseCamera.Handle), finalRotation, 1 - angCamInterpolation);
+                                    finalRotation = EnhancedCamera.CamMath.Lerp(GetEntityHeading(MainMenu.EnhancedCamMenu.chaseCamera.Handle), finalRotation, 1 - angCamInterpolation);
 
                                     // Calculate camera's position
                                     Vehicle veh = new Vehicle(vehicleEntity);
@@ -939,16 +643,16 @@ namespace vMenuClient {
 
                                     // Calculate chase camera position
                                     if (!lockOffsetPos) {
-                                        float rotation = finalRotation + userYaw;
+                                        float rotation = finalRotation + EnhancedCamera.userYaw;
                                         if (pedLock) {
-                                            chaseCamera.Position = veh.Position + RotateAroundAxis(staticPosition, Vector3.ForwardLH, rotation * DegToRad);
+                                            MainMenu.EnhancedCamMenu.chaseCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, Vector3.ForwardLH, rotation * EnhancedCamera.CamMath.DegToRad);
                                         } else {
-                                            chaseCamera.Position = veh.Position + RotateAroundAxis(staticPosition, veh.UpVector, rotation * DegToRad);
+                                            MainMenu.EnhancedCamMenu.chaseCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, rotation * EnhancedCamera.CamMath.DegToRad);
                                         }
-                                        if (userLookBehind) { chaseCamera.Position = veh.Position - (veh.RightVector * sideOffset) + RotateAroundAxis(staticPosition, veh.UpVector, 179f * DegToRad); }
+                                        if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.chaseCamera.Position = veh.Position - (veh.RightVector * sideOffset) + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, 179f * EnhancedCamera.CamMath.DegToRad); }
                                     } else {
-                                        chaseCamera.Position = veh.Position + staticPosition;
-                                        if (userLookBehind) {chaseCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f + veh.UpVector * 0.5f; }
+                                        MainMenu.EnhancedCamMenu.chaseCamera.Position = veh.Position + staticPosition;
+                                        if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.chaseCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f + veh.UpVector * 0.5f; }
                                     }
 
                                     // Calculate the camera rotation
@@ -960,36 +664,36 @@ namespace vMenuClient {
                                     // Clamp values
                                     if (CameraConstraints.CrashCheck(vehicleEntity)) {
                                         staticPosition = Vector3.ForwardLH * upOffset;
-                                        chaseCamera.Position = veh.Position + staticPosition;
-                                        roll = Lerp(chaseCamera.Rotation.Y, 0f, 0.1f);
-                                        pitch = Lerp(chaseCamera.Rotation.X, 0f, 0.1f);
+                                        MainMenu.EnhancedCamMenu.chaseCamera.Position = veh.Position + staticPosition;
+                                        roll = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.chaseCamera.Rotation.Y, 0f, 0.1f);
+                                        pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.chaseCamera.Rotation.X, 0f, 0.1f);
                                         pitch = CameraConstraints.ClampPitch(pitch);
                                     } else {
                                         // Calculate smooth roll and pitch rotation
-                                        roll = Lerp(chaseCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
-                                        pitch = Lerp(chaseCamera.Rotation.X - userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
+                                        roll = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.chaseCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
+                                        pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.chaseCamera.Rotation.X - EnhancedCamera.userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
                                         roll = CameraConstraints.ClampRoll(roll);
                                         pitch = CameraConstraints.ClampPitch(pitch);
                                     }
                                     // Finally, set the rotation
-                                    float yaw = (userLookBehind) ? (newRot.Z + 179f) : (newRot.Z + userYaw);
-                                    chaseCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
+                                    float yaw = (EnhancedCamera.userLookBehind) ? (newRot.Z + 179f) : (newRot.Z + EnhancedCamera.userYaw);
+                                    MainMenu.EnhancedCamMenu.chaseCamera.Rotation = new Vector3(pitch + EnhancedCamera.userTilt, roll, yaw);
 
                                     // Update minimap
-                                    LockMinimapAngle((int)(Fmod(yaw, 360f)));
+                                    LockMinimapAngle((int)(EnhancedCamera.CamMath.Fmod(yaw, 360f)));
                                 }
                             } else {
                                 // Target car not found - switch to Drift Cam
-                                SwitchCameraToDrift();
+                                MainMenu.EnhancedCamMenu.SwitchCameraToDrift();
                                 Notify.Info("Target not found, switching to Drift Cam", false);
                             }
 
                             // Find target and generate camera
                         } else {
-                            ResetCameras();
-                            chaseCamera = CreateNonAttachedCamera();
-                            World.RenderingCamera = chaseCamera;
-                            chaseCamera.IsActive = true;
+                            MainMenu.EnhancedCamMenu.ResetCameras();
+                            MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                            World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
+                            MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                             target = GetClosestVehicle(2000, maxAngle);
                         }
                     }
@@ -1000,175 +704,7 @@ namespace vMenuClient {
         }
 
         #endregion
-
-        #region drone camera
-
-        private DroneInfo drone;
-
-        // Drone parameters, tune them here
-        private const float GRAVITY_CONST = 10.8f;       // Gravity force constant ///9.8f
-        private const float TIMESTEP_DELIMITER = 80.15f;   // Less - gravity is stronger ///60.15f
-        private const float DRONE_DRAG = 0.0020f;        // Air resistance ///0.0015f
-        private const float DRONE_AGILITY_ROT = 8.5f;   // How quick is rotational response of the drone ///6.5f
-        private const float DRONE_AGILITY_VEL = 60f; // How quick is velocity and acceleration response ///30f
-        private const float DRONE_MAX_VEL = 29f;       // Max drone velocity in an axis ///39f
-        private const float GRAVITY_RECOVERY_MULTIPLIER = 6.75f;   // How quickly can drone regain acceleration after free fall ///10.75f
-        private const float TILT_ANGLE = 35f; // Angle of tilt in degrees, keep in 0-45 range
-
-        // Time of free fall, the longer fall the higher gravity down vector
-        private static float freeFallTime = 0f;
-
-        // TODO: make a model with collisions
-        //private static int modelEntity = 0;
-
-        /// <summary>
-        /// Changes main render camera behaviour, creates a free camera controlled
-        /// like a drone.
-        /// </summary>
-        /// <returns></returns>
-        private async Task RunDroneCam() {
-            if (MainMenu.DriftCamMenu != null) {
-                if (MainMenu.DriftCamMenu.DroneCam) {
-                    if (droneCamera != null) {
-                        // Get user input
-                        UpdateDroneControls();
-
-                        // Update camera properties
-                        UpdateDronePosition();
-                        UpdateDroneRotation();
-
-                        // Update model position
-                        /*
-                        SetEntityCoords(modelEntity,
-                            droneCamera.Position.X - droneCamera.UpVector.X * 0.75f,
-                            droneCamera.Position.Y - droneCamera.UpVector.Y * 0.75f,
-                            droneCamera.Position.Z - droneCamera.UpVector.Z * 0.75f,
-                            false, false, false, false);*/
-                    } else {
-                        ResetCameras();
-                        droneCamera = CreateNonAttachedCamera();
-                        droneCamera.FieldOfView = 85f;
-                        World.RenderingCamera = droneCamera;
-                        droneCamera.IsActive = true;
-                        drone = new DroneInfo {
-                            velocity = Vector3.Zero,
-                            downVelocity = 0f,
-                            rotation = new Quaternion(0f, 0f, 0f, 1f)
-                        };
-                        freeFallTime = 0f;
-                        // TODO: Add model with proper collision detection
-                        /*if (modelEntity <= 0) {
-                            modelEntity = CreateObject(GetHashKey("prop_ing_camera_01"), 0f, 0f, 0f, false, true, false); //prop_film_cam_01
-                            SetEntityCollision(modelEntity, false, false);
-                        }*/
-                    }
-                }
-            } else {
-                await Delay(0);
-            }
-        }
-
-        // Struct containing all the necessary info for tracking drone
-        // movement.
-        private struct DroneInfo {
-            // User input
-            public float acceleration;
-            public float deceleration;
-            public float controlPitch;
-            public float controlYaw;
-            public float controlRoll;
-            // Current values
-            public Vector3 velocity;        // Drone's velocity in all directions
-            public float downVelocity;      // Velocity caused by gravity
-            public Quaternion rotation;     // Drone rotation in quaternion
-        }
-
-        // Get user input for drone camera
-        private void UpdateDroneControls() {
-            drone.acceleration = ((float)(GetControlValue(0, 71) / 255f) - 0.5f);
-            drone.deceleration = (float)(GetControlValue(0, 72) / 255f) - 0.5f;
-
-            drone.controlPitch = ((float)(GetControlValue(1, 2) / 255f) - 0.5f);
-            drone.controlYaw = -((float)(GetControlValue(1, 9) / 255f) - 0.5f);
-            drone.controlRoll = ((float)(GetControlValue(1, 1) / 255f) - 0.5f);
-
-            // Account for mouse controls
-            if (IsInputDisabled(1)) {
-                drone.controlPitch *= 3.5f;
-                drone.controlYaw *= 0.55f;
-                drone.controlRoll *= 4.5f;
-            }
-        }
-
-        // Update drone's rotation based on input
-        private void UpdateDroneRotation() {
-
-            // Calculate delta of rotation based on user input
-            float deltaPitch = drone.controlPitch * DRONE_AGILITY_ROT * 0.75f;
-            float deltaYaw = drone.controlYaw * DRONE_AGILITY_ROT * 0.8f;
-            float deltaRoll = drone.controlRoll * DRONE_AGILITY_ROT * 1.1f;
-
-            // Rotate quaternion
-            drone.rotation *= Quaternion.RotationAxis(Vector3.Up, deltaRoll * DegToRad);
-            drone.rotation *= Quaternion.RotationAxis(Vector3.Right, deltaPitch * DegToRad);
-            drone.rotation *= Quaternion.RotationAxis(Vector3.ForwardLH, deltaYaw * DegToRad);
-
-            // Update camera rotation based on values
-            Vector3 eulerRot = QuaternionToEuler(drone.rotation);
-            SetCamRot(droneCamera.Handle, eulerRot.X, eulerRot.Y, eulerRot.Z, 2);
-        }
-
-        private void UpdateDronePosition() {
-            float deltaTime = Timestep() / TIMESTEP_DELIMITER;
-
-            // Calculate impact of gravity force
-            freeFallTime += deltaTime;                    // Increase free fall time
-            float normalizeGravity = (float) Math.Cos( (double) QuaternionToEuler(drone.rotation).Y * DegToRad);
-            normalizeGravity *= (float) Math.Cos((double) QuaternionToEuler(drone.rotation).X * DegToRad);
-            normalizeGravity = (normalizeGravity < 0f) ? (0f) : (normalizeGravity);
-            freeFallTime -= ((drone.acceleration * GRAVITY_RECOVERY_MULTIPLIER) * deltaTime * normalizeGravity );    // Free fall time is decreased when drone is accelerated
-            freeFallTime = (freeFallTime < 0f) ? (0f) : (freeFallTime);
-            drone.downVelocity = GRAVITY_CONST * freeFallTime;  // v = at
-
-            float staticTilt = (float)Math.Tan((double)(TILT_ANGLE * DegToRad));
-
-            // Calculate velocity in each direction based on acceleration
-            drone.velocity += droneCamera.ForwardVector * drone.acceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;
-            drone.velocity -= droneCamera.UpVector * drone.acceleration * DRONE_AGILITY_VEL * (staticTilt/2f) * deltaTime;
-            // Opposite thing based on deceleration
-            drone.velocity -= droneCamera.ForwardVector * drone.deceleration * DRONE_AGILITY_VEL * 0.5f * deltaTime;
-            drone.velocity += droneCamera.UpVector * drone.deceleration * DRONE_AGILITY_VEL * (staticTilt / 2f) * deltaTime;
-            // Acount for air resistance
-            drone.velocity -= drone.velocity * DRONE_DRAG;
-
-            // Clamp velocity to max
-            ClampDroneVelocity();
-
-            // Update camera position based on values
-            Vector3 deltaPos = Vector3.ForwardLH * drone.downVelocity + drone.velocity;
-            droneCamera.Position -= deltaPos;
-        }
-
-        private void ClampDroneVelocity() {
-            float maxVel = DRONE_MAX_VEL * Timestep();
-            if (Math.Abs(drone.velocity.X) > maxVel) { drone.velocity = new Vector3(Math.Sign(drone.velocity.X) * maxVel, drone.velocity.Y, drone.velocity.Z); };
-            if (Math.Abs(drone.velocity.Y) > maxVel) { drone.velocity = new Vector3(drone.velocity.X, Math.Sign(drone.velocity.Y) * maxVel, drone.velocity.Z); };
-            if (Math.Abs(drone.velocity.Z) > maxVel) { drone.velocity = new Vector3(drone.velocity.X, drone.velocity.Y, Math.Sign(drone.velocity.Z) * maxVel); };
-        }
-
-        #endregion
-
-        // WIP
-        #region collision with objects avoidance
-
-        private bool IsCameraHittingObject(Camera cam) {
-            Vector3 target = new Vector3(cam.Position.X, cam.Position.Y, cam.Position.Z) + cam.ForwardVector * 0.1f;
-            int hitpoint = CastRayPointToPoint(cam.Position.X, cam.Position.Y, cam.Position.Z, target.X, target.Y, target.Z, 16, cam.Handle, 0);
-            return (hitpoint > 0);
-        }
-
-        #endregion
-
+        
         #region save/load
 
         private struct CameraInfo {
@@ -1262,7 +798,7 @@ namespace vMenuClient {
                     cameraRollInterpolation_ = cameraRollInterpolation,
                     cameraPitchInterpolation_ = cameraPitchInterpolation,
                     pedLock_ = pedLock
-            };
+                };
 
                 if (updateExistingSavedCameraName == null) {
                     var saveName = await GetUserInput(windowTitle: "Enter a save name", maxInputLength: 30);

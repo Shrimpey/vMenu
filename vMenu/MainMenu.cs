@@ -45,7 +45,7 @@ namespace vMenuClient
         public static WeaponLoadouts WeaponLoadoutsMenu { get; private set; }
         public static Recording RecordingMenu { get; private set; }
         public static MiscSettings MiscSettingsMenu { get; private set; }
-        public static DriftCam DriftCamMenu { get; private set; }
+        public static EnhancedCamera EnhancedCamMenu { get; private set; }
         public static VoiceChat VoiceChatSettingsMenu { get; private set; }
         public static About AboutMenu { get; private set; }
         public static Menu NoClipMenu { get; } = new NoclipMenu().GetMenu();
@@ -764,13 +764,14 @@ namespace vMenuClient
                 AddMenu(Menu, menu, button);
             }
 
+            // Add enhanced cam menu.
             {
-                DriftCamMenu = new DriftCam();
-                Menu menu = DriftCamMenu.GetMenu();
-                MenuItem button = new MenuItem("Drift Camera", "Enhanced camera options.") {
+                EnhancedCamMenu = new EnhancedCamera();
+                Menu menu = EnhancedCamMenu.GetMenu();
+                MenuItem button = new MenuItem("Enhanced camera menu", "Allows to enable and configure custom camera.") {
                     Label = "→→→"
                 };
-                AddMenu(menu, button);
+                AddMenu(Menu, menu, button);
             }
 
             // Add About Menu.
