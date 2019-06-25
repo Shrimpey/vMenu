@@ -250,7 +250,8 @@ namespace vMenuClient {
                             drone.rotation.X.ToString() +
                             drone.rotation.Y.ToString() +
                             drone.rotation.Z.ToString() +
-                            drone.rotation.W.ToString()
+                            drone.rotation.W.ToString() +
+                            MainMenu.EnhancedCamMenu.droneCamera.Position.ToString()
                             );
         }
 
@@ -288,16 +289,14 @@ namespace vMenuClient {
         }
 
         private void UpdateDronePosition() {
-            float deltaTime = 0f;
-            if (Timestep() > 0f) {
-                deltaTime = Timestep() / TIMESTEP_DELIMITER;
-            }
+            float deltaTime = Timestep() / TIMESTEP_DELIMITER;
 
             // Calculate impact of gravity force
             freeFallTime += deltaTime;                    // Increase free fall time
-            float normalizeGravity = (float)Math.Cos((double)EnhancedCamera.CamMath.QuaternionToEuler(drone.rotation).Y * EnhancedCamera.CamMath.DegToRad);
-            normalizeGravity *= (float)Math.Cos((double)EnhancedCamera.CamMath.QuaternionToEuler(drone.rotation).X * EnhancedCamera.CamMath.DegToRad);
+            float normalizeGravity = Cos(EnhancedCamera.CamMath.QuaternionToEuler(drone.rotation).Y * EnhancedCamera.CamMath.DegToRad);
+            normalizeGravity *= Cos(EnhancedCamera.CamMath.QuaternionToEuler(drone.rotation).X * EnhancedCamera.CamMath.DegToRad);
             normalizeGravity = (normalizeGravity < 0f) ? (0f) : (normalizeGravity);
+            if (normalizeGravity.ToString() == "NaN") { normalizeGravity = 0f; }    // Gimbal lock fix
             freeFallTime -= ((drone.acceleration * GRAVITY_RECOVERY_MULTIPLIER * gravityRecoveryMult) * deltaTime * normalizeGravity);    // Free fall time is decreased when drone is accelerated
             freeFallTime = (freeFallTime < 0f) ? (0f) : (freeFallTime);
             drone.downVelocity = GRAVITY_CONST * gravityMult * freeFallTime;  // v = at
