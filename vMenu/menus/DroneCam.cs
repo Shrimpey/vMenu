@@ -90,6 +90,14 @@ namespace vMenuClient {
             MenuListItem tiltAngleList = new MenuListItem("Tilt angle", tiltAngleValues, 8, "Defines how much in camera tilted relative to the drone.") {
                 ShowColorPanel = false
             };
+            // FOV
+            List<string> fovValues = new List<string>();
+            for (float i = 30.0f; i <= 120.0f; i += 5f) {
+                fovValues.Add(i.ToString("0.0"));
+            }
+            MenuListItem fovList = new MenuListItem("FOV", fovValues, 10, "Field of view of the camera") {
+                ShowColorPanel = false
+            };
 
             #endregion
 
@@ -103,6 +111,7 @@ namespace vMenuClient {
             menu.AddMenuItem(rotationMultYList);
             menu.AddMenuItem(rotationMultZList);
             menu.AddMenuItem(tiltAngleList);
+            menu.AddMenuItem(fovList);
 
             #endregion
 
@@ -135,6 +144,10 @@ namespace vMenuClient {
                 if (_listItem == tiltAngleList) {
                     tiltAngle = _newIndex * 5.0f;
                 }
+                if (_listItem == fovList) {
+                    droneFov = _newIndex * 5.0f + 30f;
+                    SetCamFov(MainMenu.EnhancedCamMenu.droneCamera.Handle, droneFov);
+                }
             };
 
             #endregion
@@ -162,6 +175,7 @@ namespace vMenuClient {
         private static Vector3 rotationMult = new Vector3(1.0f, 1.0f, 1.0f);
         private static float velocityMult = 1.0f;
         private static float tiltAngle = 40.0f;
+        private static float droneFov = 80.0f;
 
         // Const drone parameters
         private const float GRAVITY_CONST = 10.8f;       // Gravity force constant ///9.8f
@@ -192,7 +206,7 @@ namespace vMenuClient {
                     } else {
                         MainMenu.EnhancedCamMenu.ResetCameras();
                         MainMenu.EnhancedCamMenu.droneCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.droneCamera.FieldOfView = 85f;
+                        MainMenu.EnhancedCamMenu.droneCamera.FieldOfView = droneFov;
                         World.RenderingCamera = MainMenu.EnhancedCamMenu.droneCamera;
                         MainMenu.EnhancedCamMenu.droneCamera.IsActive = true;
                         drone = new DroneInfo {
