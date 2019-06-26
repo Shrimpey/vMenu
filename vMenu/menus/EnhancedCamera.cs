@@ -308,6 +308,7 @@ namespace vMenuClient {
             EnableGameplayCam(true);
             UnlockMinimapAngle();
             ClearFocus();
+            Game.Player.CanControlCharacter = true;
         }
 
         private const float USER_YAW_RETURN_INTERPOLATION = 0.015f;
@@ -364,7 +365,7 @@ namespace vMenuClient {
             if (IsCustomCameraEnabled()) {
                 if (MainMenu.EnhancedCamMenu.droneCamera != null) {
                     SetFocusArea(MainMenu.EnhancedCamMenu.droneCamera.Position.X, MainMenu.EnhancedCamMenu.droneCamera.Position.Y, MainMenu.EnhancedCamMenu.droneCamera.Position.Z, 0, 0, 0);
-                    await Delay(25);
+                    await Delay(10);
                 }
             } else {
                 await Delay(10);

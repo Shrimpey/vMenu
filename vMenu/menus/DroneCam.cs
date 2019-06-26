@@ -215,6 +215,7 @@ namespace vMenuClient {
                             rotation = new Quaternion(0f, 0f, 0f, 1f)
                         };
                         freeFallTime = 0f;
+                        Game.Player.CanControlCharacter = false;
                     }
                 }
             } else {
@@ -253,10 +254,10 @@ namespace vMenuClient {
 
         // Get user input for drone camera
         private void UpdateDroneControls() {
-            drone.acceleration = ((float)(GetControlValue(0, 71) / 255f) - 0.5f);
-            drone.controlPitch = ((float)(GetControlValue(1, 2) / 255f) - 0.5f);
-            drone.controlYaw = -((float)(GetControlValue(1, 9) / 255f) - 0.5f);
-            drone.controlRoll = ((float)(GetControlValue(1, 1) / 255f) - 0.5f);
+            drone.acceleration = ((float)(GetDisabledControlNormal(0, 71))/2f);
+            drone.controlPitch = ((float)(GetDisabledControlNormal(1, 2))/2f);
+            drone.controlYaw = -((float)(GetDisabledControlNormal(1, 9))/2f);
+            drone.controlRoll = ((float)(GetDisabledControlNormal(1, 1))/2f);
 
             // Account for mouse controls
             if (IsInputDisabled(1)) {
@@ -284,6 +285,7 @@ namespace vMenuClient {
             SetCamRot(MainMenu.EnhancedCamMenu.droneCamera.Handle, eulerRot.X, eulerRot.Y, eulerRot.Z, 2);
         }
 
+        // Implementation of drone's physics engine
         private void UpdateDronePosition() {
             float deltaTime = Timestep() / TIMESTEP_DELIMITER;
 
@@ -294,8 +296,8 @@ namespace vMenuClient {
             normalizeGravity = (normalizeGravity < 0f) ? (0f) : (normalizeGravity);
             if (normalizeGravity.ToString() == "NaN") { normalizeGravity = 0f; }    // Gimbal lock fix
             freeFallTime -= ((drone.acceleration * GRAVITY_RECOVERY_MULTIPLIER * gravityRecoveryMult) * deltaTime * normalizeGravity);    // Free fall time is decreased when drone is accelerated
-            freeFallTime = (freeFallTime < 0f) ? (0f) : (freeFallTime);
-            drone.downVelocity = GRAVITY_CONST * gravityMult * freeFallTime;  // v = at
+            freeFallTime = (freeFallTime < 0f) ? (0f) : (freeFallTime);         // Do not add negative gravity force when upside down
+            drone.downVelocity = GRAVITY_CONST * gravityMult * freeFallTime;    // v = at
 
             float staticTilt = (float)Math.Tan((double)(tiltAngle * EnhancedCamera.CamMath.DegToRad));
 
