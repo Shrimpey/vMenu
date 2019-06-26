@@ -319,14 +319,8 @@ namespace vMenuClient {
             drone.velocity += Vector3.ForwardLH * deltaDownForce * deltaTime;
 
             // Clamp velocity to maximum with some smoothing
-            if (Math.Abs(drone.velocity.X) > maxVel * DRONE_MAX_VELOCITY) {
-                drone.velocity.X = EnhancedCamera.CamMath.Lerp(drone.velocity.X, Math.Sign(drone.velocity.X) * maxVel * DRONE_MAX_VELOCITY, 0.08f);
-            }
-            if (Math.Abs(drone.velocity.Y) > maxVel * DRONE_MAX_VELOCITY) {
-                drone.velocity.Y = EnhancedCamera.CamMath.Lerp(drone.velocity.Y, Math.Sign(drone.velocity.Y) * maxVel * DRONE_MAX_VELOCITY, 0.08f);
-            }
-            if (Math.Abs(drone.velocity.Z) > maxVel * DRONE_MAX_VELOCITY) {
-                drone.velocity.Z = EnhancedCamera.CamMath.Lerp(drone.velocity.Z, Math.Sign(drone.velocity.Z) * maxVel * DRONE_MAX_VELOCITY, 0.08f);
+            if (Math.Abs(drone.velocity.Length()) > maxVel * DRONE_MAX_VELOCITY) {
+                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.08f);
             }
 
             // Update camera position based on velocity values
