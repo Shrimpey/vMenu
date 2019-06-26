@@ -82,16 +82,7 @@ namespace vMenuClient {
             MenuListItem rotationMultZList = new MenuListItem("Yaw multiplier", rotationMultZValues, 20, "How responsive drone is in terms of rotation (yaw).") {
                 ShowColorPanel = false
             };
-
-            // Max velocity
-            List<string> maxVelocityValues = new List<string>();
-            for (float i = 20.0f; i <= 40.0f; i += 1f) {
-                maxVelocityValues.Add(i.ToString("0.0"));
-            }
-            MenuListItem maxVelocityList = new MenuListItem("Max velocity", maxVelocityValues, 10, "Defines max value that drone can achieve (not taking into account gravity)") {
-                ShowColorPanel = false
-            };
-            // Max velocity
+            // Tilt angle
             List<string> tiltAngleValues = new List<string>();
             for (float i = 0.0f; i <= 45.0f; i += 5f) {
                 tiltAngleValues.Add(i.ToString("0.0"));
@@ -111,7 +102,6 @@ namespace vMenuClient {
             menu.AddMenuItem(rotationMultXList);
             menu.AddMenuItem(rotationMultYList);
             menu.AddMenuItem(rotationMultZList);
-            menu.AddMenuItem(maxVelocityList);
             menu.AddMenuItem(tiltAngleList);
 
             #endregion
@@ -141,10 +131,7 @@ namespace vMenuClient {
                 if (_listItem == rotationMultZList) {
                     rotationMult.Z = _newIndex * 0.025f + 0.5f;
                 }
-
-                if (_listItem == maxVelocityList) {
-                    maxVelocity = _newIndex + 20.0f;
-                }
+                
                 if (_listItem == tiltAngleList) {
                     tiltAngle = _newIndex * 5.0f;
                 }
@@ -174,16 +161,15 @@ namespace vMenuClient {
         private static float dragMult = 1.0f;
         private static Vector3 rotationMult = new Vector3(1.0f, 1.0f, 1.0f);
         private static float velocityMult = 1.0f;
-        private static float maxVelocity = 30.0f;
         private static float tiltAngle = 40.0f;
 
         // Const drone parameters
         private const float GRAVITY_CONST = 10.8f;       // Gravity force constant ///9.8f
         private const float TIMESTEP_DELIMITER = 80.15f;   // Less - gravity is stronger ///60.15f
         private const float DRONE_DRAG = 0.0020f;        // Air resistance ///0.0015f
-        private const float DRONE_AGILITY_ROT = 8.5f;   // How quick is rotational response of the drone ///6.5f
-        private const float DRONE_AGILITY_VEL = 60f; // How quick is velocity and acceleration response ///30f
-        private const float GRAVITY_RECOVERY_MULTIPLIER = 6.75f;   // How quickly can drone regain acceleration after free fall ///10.75f
+        private const float DRONE_AGILITY_ROT = 8.0f;   // How quick is rotational response of the drone ///6.5f
+        private const float DRONE_AGILITY_VEL = 65f; // How quick is velocity and acceleration response ///30f
+        private const float GRAVITY_RECOVERY_MULTIPLIER = 8.75f;   // How quickly can drone regain acceleration after free fall ///10.75f
 
         // Time of free fall, the longer fall the higher gravity down vector
         private static float freeFallTime = 0f;
@@ -271,8 +257,8 @@ namespace vMenuClient {
 
             // Calculate delta of rotation based on user input
             float deltaPitch = drone.controlPitch * DRONE_AGILITY_ROT * 0.75f * rotationMult.X;
-            float deltaYaw = drone.controlYaw * DRONE_AGILITY_ROT * 0.8f * rotationMult.Z;
-            float deltaRoll = drone.controlRoll * DRONE_AGILITY_ROT * 1.1f * rotationMult.Y;
+            float deltaYaw = drone.controlYaw * DRONE_AGILITY_ROT * 0.7f * rotationMult.Z;
+            float deltaRoll = drone.controlRoll * DRONE_AGILITY_ROT * 0.85f * rotationMult.Y;
 
             // Rotate quaternion
             drone.rotation *= Quaternion.RotationAxis(Vector3.Up, deltaRoll * EnhancedCamera.CamMath.DegToRad);
@@ -305,19 +291,9 @@ namespace vMenuClient {
             // Acount for air resistance
             drone.velocity -= drone.velocity * DRONE_DRAG * dragMult;
 
-            // Clamp velocity to max
-            ClampDroneVelocity();
-
             // Update camera position based on values
             Vector3 deltaPos = Vector3.ForwardLH * drone.downVelocity + drone.velocity;
             MainMenu.EnhancedCamMenu.droneCamera.Position -= deltaPos;
-        }
-
-        private void ClampDroneVelocity() {
-            float maxVel = maxVelocity * Timestep();
-            if (Math.Abs(drone.velocity.X) > maxVel) { drone.velocity = new Vector3(Math.Sign(drone.velocity.X) * maxVel, drone.velocity.Y, drone.velocity.Z); };
-            if (Math.Abs(drone.velocity.Y) > maxVel) { drone.velocity = new Vector3(drone.velocity.X, Math.Sign(drone.velocity.Y) * maxVel, drone.velocity.Z); };
-            if (Math.Abs(drone.velocity.Z) > maxVel) { drone.velocity = new Vector3(drone.velocity.X, drone.velocity.Y, Math.Sign(drone.velocity.Z) * maxVel); };
         }
 
         #endregion
