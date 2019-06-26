@@ -281,7 +281,7 @@ namespace vMenuClient {
         private void UpdateDroneRotation() {
 
             // Calculate delta of rotation based on user input
-            float deltaPitch = drone.controlPitch * DRONE_AGILITY_ROT * 0.75f * rotationMult.X;
+            float deltaPitch = drone.controlPitch * DRONE_AGILITY_ROT * 0.70f * rotationMult.X;
             float deltaYaw = drone.controlYaw * DRONE_AGILITY_ROT * 0.6f * rotationMult.Z;
             float deltaRoll = drone.controlRoll * DRONE_AGILITY_ROT * 0.75f * rotationMult.Y;
 
@@ -319,16 +319,18 @@ namespace vMenuClient {
             drone.velocity += Vector3.ForwardLH * deltaDownForce * deltaTime;
 
             // Clamp velocity to maximum with some smoothing
-            ClampVelocity();
+            if (Math.Abs(drone.velocity.X) > maxVel * DRONE_MAX_VELOCITY) {
+                drone.velocity.X = EnhancedCamera.CamMath.Lerp(drone.velocity.X, Math.Sign(drone.velocity.X) * maxVel * DRONE_MAX_VELOCITY, 0.08f);
+            }
+            if (Math.Abs(drone.velocity.Y) > maxVel * DRONE_MAX_VELOCITY) {
+                drone.velocity.Y = EnhancedCamera.CamMath.Lerp(drone.velocity.Y, Math.Sign(drone.velocity.Y) * maxVel * DRONE_MAX_VELOCITY, 0.08f);
+            }
+            if (Math.Abs(drone.velocity.Z) > maxVel * DRONE_MAX_VELOCITY) {
+                drone.velocity.Z = EnhancedCamera.CamMath.Lerp(drone.velocity.Z, Math.Sign(drone.velocity.Z) * maxVel * DRONE_MAX_VELOCITY, 0.08f);
+            }
 
             // Update camera position based on velocity values
             MainMenu.EnhancedCamMenu.droneCamera.Position -= drone.velocity;
-        }
-
-        private void ClampVelocity() {
-            if (Math.Abs(drone.velocity.X) > maxVel * DRONE_MAX_VELOCITY) { drone.velocity.X -= Math.Sign(drone.velocity.X) * 0.05f * (Math.Abs(drone.velocity.X) - maxVel * DRONE_MAX_VELOCITY); };
-            if (Math.Abs(drone.velocity.Y) > maxVel * DRONE_MAX_VELOCITY) { drone.velocity.Y -= Math.Sign(drone.velocity.Y) * 0.05f * (Math.Abs(drone.velocity.Y) - maxVel * DRONE_MAX_VELOCITY); };
-            //if (Math.Abs(drone.velocity.Z) > maxVel * DRONE_MAX_VELOCITY) { drone.velocity.Z -= Math.Sign(drone.velocity.Z) * 0.05f * (Math.Abs(drone.velocity.Z) - maxVel * DRONE_MAX_VELOCITY); };
         }
 
         #endregion
