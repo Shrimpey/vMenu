@@ -61,7 +61,7 @@ namespace vMenuClient {
         }
 
         private void CreateMenu() {
-            menu = new Menu(Game.Player.Name, "Custom Camera parameters");
+            menu = new Menu(Game.Player.Name, "Lead/chase camera parameters");
 
             #region checkbox items
 
@@ -500,10 +500,19 @@ namespace vMenuClient {
                                     } else {
                                         MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, rotation * EnhancedCamera.CamMath.DegToRad);
                                     }
-                                    if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, 179f * EnhancedCamera.CamMath.DegToRad); }
+                                    if (EnhancedCamera.userLookBehind) {
+                                        MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position +
+                                            EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, 179f * EnhancedCamera.CamMath.DegToRad);
+                                    }
                                 } else {
                                     MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition;
-                                    if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition - (veh.RightVector * sideOffset) + veh.ForwardVector * 3.5f + veh.UpVector * 0.5f; }
+                                    if (EnhancedCamera.userLookBehind) {
+                                        MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position +
+                                                                                        staticPosition -
+                                                                                        (veh.RightVector * sideOffset) +
+                                                                                        veh.ForwardVector * 3.5f +
+                                                                                        veh.UpVector * 0.5f;
+                                    }
                                 }
                             } else {
                                 MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition + veh.RightVector * oldPosXOffset / 12f;
@@ -511,7 +520,7 @@ namespace vMenuClient {
                             }
 
                             // Calculate target rotation as a heading in given range
-                            Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((finalRotation + GetEntityRotation(vehicleEntity, 4).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
+                            Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((finalRotation + GetEntityRotation(vehicleEntity, 2).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
                             float roll = 0f;
                             float pitch = 0f;
                             // Clamp values
@@ -529,9 +538,8 @@ namespace vMenuClient {
                                 pitch = CameraConstraints.ClampPitch(pitch);
                             }
                             // Finalize the rotation
-                            float yaw = (EnhancedCamera.userLookBehind) ? (-newRot.Z + 179f) : (newRot.Z + EnhancedCamera.userYaw);
+                            float yaw = (EnhancedCamera.userLookBehind) ? (newRot.Z + 179f) : (newRot.Z + EnhancedCamera.userYaw);
                             pitch *= (EnhancedCamera.userLookBehind) ? (-1f) : (1f);
-                            //driftCamera.Rotation = new Vector3(pitch + userTilt, roll, yaw);
                             SetCamRot(MainMenu.EnhancedCamMenu.driftCamera.Handle, pitch + EnhancedCamera.userTilt, roll, yaw, 2);
 
                             // Update minimap
@@ -616,7 +624,7 @@ namespace vMenuClient {
                                 if (Math.Abs(finalRotation) > maxAngle) {
                                     target = null;
                                     MainMenu.EnhancedCamMenu.SwitchCameraToDrift();
-                                    Notify.Info("Target exceeded angle limit, switching to Drift Cam", false);
+                                    Notify.Info("Target exceeded angle limit, switching to Lead Camera", false);
                                     return;
                                 }
 
@@ -683,9 +691,9 @@ namespace vMenuClient {
                                     LockMinimapAngle((int)(EnhancedCamera.CamMath.Fmod(yaw, 360f)));
                                 }
                             } else {
-                                // Target car not found - switch to Drift Cam
+                                // Target car not found - switch to Lead Cam
                                 MainMenu.EnhancedCamMenu.SwitchCameraToDrift();
-                                Notify.Info("Target not found, switching to Drift Cam", false);
+                                Notify.Info("Target not found, switching to Lead Camera", false);
                             }
 
                             // Find target and generate camera
