@@ -218,7 +218,6 @@ namespace vMenuClient {
                         MainMenu.EnhancedCamMenu.ResetCameras();
                         MainMenu.EnhancedCamMenu.droneCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
                         MainMenu.EnhancedCamMenu.droneCamera.FieldOfView = droneFov;
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.droneCamera;
                         MainMenu.EnhancedCamMenu.droneCamera.IsActive = true;
                         drone = new DroneInfo {
                             velocity = Vector3.Zero,

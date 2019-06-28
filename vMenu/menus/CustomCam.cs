@@ -52,6 +52,52 @@ namespace vMenuClient {
         private Menu selectedCameraMenu = new Menu("Manage Camera", "Manage this saved camera.");
         private static KeyValuePair<string, CameraInfo> currentlySelectedCamera = new KeyValuePair<string, CameraInfo>();
 
+        // GUI parameters
+        private MenuCheckboxItem lockPosOffsetCheckbox;
+        private MenuCheckboxItem linearPosCheckbox;
+        private MenuCheckboxItem pedLockCheckbox;
+        private MenuListItem angCamModifierList;
+        private MenuListItem angCamInterpolationList;
+        private MenuListItem rollInterpolationList;
+        private MenuListItem pitchInterpolationList;
+        private MenuListItem chaseCamOffsetList;
+        private MenuListItem posInterpolationList;
+        private MenuListItem customCamFOVList;
+        private MenuListItem customCamForwardOffsetList;
+        private MenuListItem customCamSideOffsetList;
+        private MenuListItem customCamUpOffsetList;
+        private MenuListItem chaseCamMaxAngleList;
+
+        // Update params
+        private void UpdateParams() {
+            // Reset camera to update params
+            MainMenu.EnhancedCamMenu.ResetCameras();
+            if (MainMenu.EnhancedCamMenu.LeadCam) {
+                MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
+            } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
+                MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
+            }
+            // Update GUI params
+            angCamModifierList.ListIndex = (int)((angCamModifier - 0.0001f + 1f) / 0.025f);
+            angCamInterpolationList.ListIndex = (int)((angCamInterpolation) / 0.005f);
+            chaseCamOffsetList.ListIndex = (chaseCamOffset);
+            posInterpolationList.ListIndex = (int)((posInterpolation) / 0.01f);
+            rollInterpolationList.ListIndex = (int)((cameraRollInterpolation) / 0.005f);
+            pitchInterpolationList.ListIndex = (int)((cameraPitchInterpolation) / 0.005f);
+            chaseCamMaxAngleList.ListIndex = (int)((maxAngle - 25f) / 5f);
+            customCamFOVList.ListIndex = (int)(fov - 20.0f);
+            customCamForwardOffsetList.ListIndex = (int)((forwardOffset + 8f) / 0.05f);
+            customCamUpOffsetList.ListIndex = (int)((upOffset + 5f) / 0.05f);
+            customCamSideOffsetList.ListIndex = (int)((sideOffset + 5f) / 0.05f);
+            lockPosOffsetCheckbox.Checked = lockOffsetPos;
+            linearPosCheckbox.Checked = linearPosOffset;
+            pedLockCheckbox.Checked = pedLock;
+
+            menu.RefreshIndex();
+        }
+
         #endregion
 
         // Constructor
@@ -66,11 +112,11 @@ namespace vMenuClient {
             #region checkbox items
 
             // Lock position offset
-            MenuCheckboxItem lockPosOffsetCheckbox = new MenuCheckboxItem("Lock position offset", "Locks position offset, useful when sticking camera to the car - on top of hood, as FPV cam, etc.", false);
+            lockPosOffsetCheckbox = new MenuCheckboxItem("Lock position offset", "Locks position offset, useful when sticking camera to the car - on top of hood, as FPV cam, etc.", false);
             // Linear position offset
-            MenuCheckboxItem linearPosCheckbox = new MenuCheckboxItem("Linear position offset", "Instead of circular motion around the car, the camera moves along car's X axis. Dope for cinematic shots.", false);
+            linearPosCheckbox = new MenuCheckboxItem("Linear position offset", "Instead of circular motion around the car, the camera moves along car's X axis. Dope for cinematic shots.", false);
             // Lock to ped
-            MenuCheckboxItem pedLockCheckbox = new MenuCheckboxItem("Lock rotation to camera plane", "Changes the way that camera rotates around car (mostly visible on uneven ground).", false);
+            pedLockCheckbox = new MenuCheckboxItem("Lock rotation to camera plane", "Changes the way that camera rotates around car (mostly visible on uneven ground).", false);
 
             #endregion
 
@@ -81,7 +127,7 @@ namespace vMenuClient {
             for (float i = -1f; i < 1f; i += 0.025f) {
                 angCamModifierValues.Add(i.ToString("0.000"));
             }
-            MenuListItem angCamModifierList = new MenuListItem("Modifier", angCamModifierValues, 48, "This modifier * angular velocity = target rotation. Higher values make camera move further from lock. (-1,1)") {
+            angCamModifierList = new MenuListItem("Modifier", angCamModifierValues, 48, "This modifier * angular velocity = target rotation. Higher values make camera move further from lock. (-1,1)") {
                 ShowColorPanel = false
             };
 
@@ -90,7 +136,7 @@ namespace vMenuClient {
             for (float i = 0.0f; i < 1f; i += 0.005f) {
                 angCamInterpolationValues.Add(i.ToString("0.000"));
             }
-            MenuListItem angCamInterpolationList = new MenuListItem("Yaw interpolation", angCamInterpolationValues, 4, "Lower values - smoother movement. WARNING: Slider is inversed for chase camera - 0 is max interpolation, 1 is complete lock. (0,1)") {
+            angCamInterpolationList = new MenuListItem("Yaw interpolation", angCamInterpolationValues, 4, "Lower values - smoother movement. WARNING: Slider is inversed for chase camera - 0 is max interpolation, 1 is complete lock. (0,1)") {
                 ShowColorPanel = false
             };
 
@@ -99,7 +145,7 @@ namespace vMenuClient {
             for (float i = 0.0f; i < 1f; i += 0.005f) {
                 rollInterpolationValues.Add(i.ToString("0.000"));
             }
-            MenuListItem rollInterpolationList = new MenuListItem("Roll interpolation", rollInterpolationValues, 20, "Lower values - smoother movement. (0,1)") {
+            rollInterpolationList = new MenuListItem("Roll interpolation", rollInterpolationValues, 20, "Lower values - smoother movement. (0,1)") {
                 ShowColorPanel = false
             };
 
@@ -108,7 +154,7 @@ namespace vMenuClient {
             for (float i = 0.0f; i < 1f; i += 0.005f) {
                 pitchInterpolationValues.Add(i.ToString("0.000"));
             }
-            MenuListItem pitchInterpolationList = new MenuListItem("Pitch interpolation", pitchInterpolationValues, 20, "Lower values - smoother movement. (0,1)") {
+            pitchInterpolationList = new MenuListItem("Pitch interpolation", pitchInterpolationValues, 20, "Lower values - smoother movement. (0,1)") {
                 ShowColorPanel = false
             };
 
@@ -117,7 +163,7 @@ namespace vMenuClient {
             for (float i = 0; i <= 5; i += 0.125f) {
                 chaseCamOffsetValues.Add((i).ToString("0.000"));
             }
-            MenuListItem chaseCamOffsetList = new MenuListItem("Camera offset", chaseCamOffsetValues, 0, "Offsets chase camera target towards its velocity vector. (0,5)") {
+            chaseCamOffsetList = new MenuListItem("Camera offset", chaseCamOffsetValues, 0, "Offsets chase camera target towards its velocity vector. (0,5)") {
                 ShowColorPanel = false
             };
 
@@ -126,7 +172,7 @@ namespace vMenuClient {
             for (float i = 0.0f; i < 1f; i += 0.01f) {
                 posInterpolationValues.Add(i.ToString("0.00"));
             }
-            MenuListItem posInterpolationList = new MenuListItem("Position interpolation", posInterpolationValues, 100, "Lower values - smoother movement, higher delay. (0,1)") {
+            posInterpolationList = new MenuListItem("Position interpolation", posInterpolationValues, 100, "Lower values - smoother movement, higher delay. (0,1)") {
                 ShowColorPanel = false
             };
 
@@ -135,7 +181,7 @@ namespace vMenuClient {
             for (float i = 20; i <= 120; i += 1f) {
                 customCamFOVValues.Add((i).ToString());
             }
-            MenuListItem customCamFOVList = new MenuListItem("FOV", customCamFOVValues, 43, "Change custom camera's FOV. (20,120)") {
+            customCamFOVList = new MenuListItem("FOV", customCamFOVValues, 43, "Change custom camera's FOV. (20,120)") {
                 ShowColorPanel = false
             };
 
@@ -144,7 +190,7 @@ namespace vMenuClient {
             for (float i = -8; i <= 8; i += 0.05f) {
                 customCamForwardOffsetValues.Add((i).ToString("0.00"));
             }
-            MenuListItem customCamForwardOffsetList = new MenuListItem("Y offset", customCamForwardOffsetValues, 65, "Custom camera offset in forward direction. (-8,8)") {
+            customCamForwardOffsetList = new MenuListItem("Y offset", customCamForwardOffsetValues, 65, "Custom camera offset in forward direction. (-8,8)") {
                 ShowColorPanel = false
             };
             // Custom cam side offset
@@ -152,7 +198,7 @@ namespace vMenuClient {
             for (float i = -5; i <= 8; i += 0.05f) {
                 customCamSideOffsetValues.Add((i).ToString("0.00"));
             }
-            MenuListItem customCamSideOffsetList = new MenuListItem("X offset", customCamSideOffsetValues, 100, "Custom camera offset in side direction. (-5,8)") {
+            customCamSideOffsetList = new MenuListItem("X offset", customCamSideOffsetValues, 100, "Custom camera offset in side direction. (-5,8)") {
                 ShowColorPanel = false
             };
             // Custom cam up offset
@@ -160,7 +206,7 @@ namespace vMenuClient {
             for (float i = -5; i <= 8; i += 0.05f) {
                 customCamUpOffsetValues.Add((i).ToString("0.00"));
             }
-            MenuListItem customCamUpOffsetList = new MenuListItem("Z offset", customCamUpOffsetValues, 141, "Custom camera offset in up direction. (-5,8)") {
+            customCamUpOffsetList = new MenuListItem("Z offset", customCamUpOffsetValues, 141, "Custom camera offset in up direction. (-5,8)") {
                 ShowColorPanel = false
             };
 
@@ -168,7 +214,7 @@ namespace vMenuClient {
             for (float i = 25; i <= 360; i += 5) {
                 chaseCamMaxAngleValues.Add(i.ToString());
             }
-            MenuListItem chaseCamMaxAngleList = new MenuListItem("Max angle to lock.", chaseCamMaxAngleValues, 67, "Max angle from velocity vector to keep the lock on, if angle exceeds this limit, camera switches back to normal. (25,360)") {
+            chaseCamMaxAngleList = new MenuListItem("Max angle to lock.", chaseCamMaxAngleValues, 67, "Max angle from velocity vector to keep the lock on, if angle exceeds this limit, camera switches back to normal. (25,360)") {
                 ShowColorPanel = false
             };
 
@@ -213,35 +259,9 @@ namespace vMenuClient {
                     currentlySelectedCamera = new KeyValuePair<string, CameraInfo>("_1__", CustomCamPresets.tandemCam1);
                     SpawnSavedCamera();
 
-                    MainMenu.EnhancedCamMenu.ResetCameras();
-                    if (MainMenu.EnhancedCamMenu.LeadCam) {
-                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
-                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
-                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
-                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
-                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
-                    }
-
                     // Update menu stuff according to loaded values
-                    angCamModifierList.ListIndex = (int)((angCamModifier - 0.0001f + 1f) / 0.025f);
-                    angCamInterpolationList.ListIndex = (int)((angCamInterpolation) / 0.005f);
-                    chaseCamOffsetList.ListIndex = (chaseCamOffset);
-                    posInterpolationList.ListIndex = (int)((posInterpolation) / 0.01f);
-                    rollInterpolationList.ListIndex = (int)((cameraRollInterpolation) / 0.005f);
-                    pitchInterpolationList.ListIndex = (int)((cameraPitchInterpolation) / 0.005f);
-                    chaseCamMaxAngleList.ListIndex = (int)((maxAngle - 25f) / 5f);
-                    customCamFOVList.ListIndex = (int)(fov - 20.0f);
-                    customCamForwardOffsetList.ListIndex = (int)((forwardOffset + 8f) / 0.05f);
-                    customCamUpOffsetList.ListIndex = (int)((upOffset + 5f) / 0.05f);
-                    customCamSideOffsetList.ListIndex = (int)((sideOffset + 5f) / 0.05f);
-                    lockPosOffsetCheckbox.Checked = lockOffsetPos;
-                    linearPosCheckbox.Checked = linearPosOffset;
-                    pedLockCheckbox.Checked = pedLock;
-
+                    UpdateParams();
                     presetsMenu.GoBack();
-                    menu.RefreshIndex();
                 }
                 if (item == fpvCamPreset) {
                     Notify.Info("Switching to FPV camera base. Tune XYZ offsets to your car.");
@@ -249,35 +269,9 @@ namespace vMenuClient {
                     currentlySelectedCamera = new KeyValuePair<string, CameraInfo>("_2__", CustomCamPresets.fpvCam1);
                     SpawnSavedCamera();
 
-                    MainMenu.EnhancedCamMenu.ResetCameras();
-                    if (MainMenu.EnhancedCamMenu.LeadCam) {
-                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
-                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
-                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
-                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
-                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
-                    }
-
                     // Update menu stuff according to loaded values
-                    angCamModifierList.ListIndex = (int)((angCamModifier - 0.0001f + 1f) / 0.025f);
-                    angCamInterpolationList.ListIndex = (int)((angCamInterpolation) / 0.005f);
-                    chaseCamOffsetList.ListIndex = (chaseCamOffset);
-                    posInterpolationList.ListIndex = (int)((posInterpolation) / 0.01f);
-                    rollInterpolationList.ListIndex = (int)((cameraRollInterpolation) / 0.005f);
-                    pitchInterpolationList.ListIndex = (int)((cameraPitchInterpolation) / 0.005f);
-                    chaseCamMaxAngleList.ListIndex = (int)((maxAngle - 25f) / 5f);
-                    customCamFOVList.ListIndex = (int)(fov - 20.0f);
-                    customCamForwardOffsetList.ListIndex = (int)((forwardOffset + 8f) / 0.05f);
-                    customCamUpOffsetList.ListIndex = (int)((upOffset + 5f) / 0.05f);
-                    customCamSideOffsetList.ListIndex = (int)((sideOffset + 5f) / 0.05f);
-                    lockPosOffsetCheckbox.Checked = lockOffsetPos;
-                    linearPosCheckbox.Checked = linearPosOffset;
-                    pedLockCheckbox.Checked = pedLock;
-
+                    UpdateParams();
                     presetsMenu.GoBack();
-                    menu.RefreshIndex();
                 }
             };
 
@@ -338,36 +332,9 @@ namespace vMenuClient {
                 if (item == spawnCamera) {
                     MainMenu.EnhancedCamMenu.ResetCameras();
                     SpawnSavedCamera();
-
-                    if (MainMenu.EnhancedCamMenu.LeadCam) {
-                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
-                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
-                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
-                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
-                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
-                    }
-
-                    // Update menu stuff according to loaded values
-                    angCamModifierList.ListIndex = (int)((angCamModifier - 0.0001f + 1f) / 0.025f);
-                    angCamInterpolationList.ListIndex = (int)((angCamInterpolation) / 0.005f);
-                    chaseCamOffsetList.ListIndex = (chaseCamOffset);
-                    posInterpolationList.ListIndex = (int)((posInterpolation) / 0.01f);
-                    rollInterpolationList.ListIndex = (int)((cameraRollInterpolation) / 0.005f);
-                    pitchInterpolationList.ListIndex = (int)((cameraPitchInterpolation) / 0.005f);
-                    chaseCamMaxAngleList.ListIndex = (int)((maxAngle - 25f) / 5f);
-                    customCamFOVList.ListIndex = (int)(fov - 20.0f);
-                    customCamForwardOffsetList.ListIndex = (int)((forwardOffset + 8f) / 0.05f);
-                    customCamUpOffsetList.ListIndex = (int)((upOffset + 5f) / 0.05f);
-                    customCamSideOffsetList.ListIndex = (int)((sideOffset + 5f) / 0.05f);
-                    lockPosOffsetCheckbox.Checked = lockOffsetPos;
-                    linearPosCheckbox.Checked = linearPosOffset;
-                    pedLockCheckbox.Checked = pedLock;
-
+                    UpdateParams();
                     selectedCameraMenu.GoBack();
                     savedCamerasMenu.RefreshIndex();
-                    menu.RefreshIndex();
 
                 } else if (item == deleteCamera) {
                     item.Label = "";
@@ -441,11 +408,9 @@ namespace vMenuClient {
                     fov = (float)(_newIndex * 1f + 20.0f);
                     if (MainMenu.EnhancedCamMenu.LeadCam) {
                         MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
                         MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
                     } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
                         MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
                         MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                     }
                 }
@@ -455,11 +420,9 @@ namespace vMenuClient {
                     forwardOffset = (float)(_newIndex * 0.05f - 8f);
                     if (MainMenu.EnhancedCamMenu.LeadCam) {
                         MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
                         MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
                     } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
                         MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
                         MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                     }
                 }
@@ -469,11 +432,9 @@ namespace vMenuClient {
                     sideOffset = (float)(_newIndex * 0.05f - 5f);
                     if (MainMenu.EnhancedCamMenu.LeadCam) {
                         MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
                         MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
                     } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
                         MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
                         MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                     }
                 }
@@ -483,11 +444,9 @@ namespace vMenuClient {
                     upOffset = (float)(_newIndex * 0.05f - 5f);
                     if (MainMenu.EnhancedCamMenu.LeadCam) {
                         MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
                         MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
                     } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
                         MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
                         MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                     }
                 }
@@ -640,7 +599,6 @@ namespace vMenuClient {
                             // In case the camera is null - reset the cameras and reassign this camera
                             MainMenu.EnhancedCamMenu.ResetCameras();
                             MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                            World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
                             MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
                         }
                     }
@@ -792,7 +750,6 @@ namespace vMenuClient {
                         } else {
                             MainMenu.EnhancedCamMenu.ResetCameras();
                             MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                            World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
                             MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                             target = GetClosestVehicle(2000, maxAngle);
                         }

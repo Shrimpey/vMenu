@@ -291,6 +291,7 @@ namespace vMenuClient {
             newCam.DepthOfFieldStrength = 50f;
             newCam.MotionBlurStrength = 0.1f;
             newCam.IsActive = true;
+            RenderScriptCams(true, true, 500, true, true);
             return newCam;
         }
 
@@ -299,7 +300,7 @@ namespace vMenuClient {
         /// </summary>
         /// <returns></returns>
         public void ResetCameras() {
-            World.RenderingCamera = null;
+            RenderScriptCams(false, true, 500, true, true);
             MainMenu.EnhancedCamMenu.driftCamera = null;
             MainMenu.EnhancedCamMenu.chaseCamera = null;
             MainMenu.EnhancedCamMenu.droneCamera = null;
@@ -325,7 +326,6 @@ namespace vMenuClient {
                 // User controls the tilt offset
                 float tiltControl = ((float)(GetControlValue(1, 2) / 256f) - 0.5f);
                 float yawControl = ((float)(GetControlValue(1, 1) / 256f) - 0.5f);
-
                 userLookBehind = IsControlPressed(1, 26);
 
                 if ((Math.Abs(tiltControl) > 0.01f) || (Math.Abs(yawControl) > 0.01f)) {
@@ -365,10 +365,9 @@ namespace vMenuClient {
             if (IsCustomCameraEnabled()) {
                 if (MainMenu.EnhancedCamMenu.droneCamera != null) {
                     SetFocusArea(MainMenu.EnhancedCamMenu.droneCamera.Position.X, MainMenu.EnhancedCamMenu.droneCamera.Position.Y, MainMenu.EnhancedCamMenu.droneCamera.Position.Z, 0, 0, 0);
-                    await Delay(10);
                 }
             } else {
-                await Delay(10);
+                await Delay(1);
             }
         }
 
