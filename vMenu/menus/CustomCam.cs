@@ -195,7 +195,99 @@ namespace vMenuClient {
             menu.AddMenuItem(customCamUpOffsetList);
             menu.AddMenuItem(customCamSideOffsetList);
 
-            //MainMenu.EnhancedCamMenu.DisableMenus();
+            // Presets
+            Menu presetsMenu = new Menu("Presets", "Spawn camera presets");
+            MenuItem tandemCamPreset = new MenuItem("Tandem Camera 1.0", "Chef's specialty") {
+                Label = $"→→→"
+            };
+            MenuItem fpvCamPreset = new MenuItem("FPV camera base", "Best to use with chicken model") {
+                Label = $"→→→"
+            };
+            presetsMenu.AddMenuItem(tandemCamPreset);
+            presetsMenu.AddMenuItem(fpvCamPreset);
+
+            presetsMenu.OnItemSelect += (sender, item, index) => {
+                if (item == tandemCamPreset) {
+                    Notify.Info("Switching to Tandem Camera 1.0. Tune XYZ offsets to your car.");
+
+                    currentlySelectedCamera = new KeyValuePair<string, CameraInfo>("_1__", CustomCamPresets.tandemCam1);
+                    SpawnSavedCamera();
+
+                    MainMenu.EnhancedCamMenu.ResetCameras();
+                    if (MainMenu.EnhancedCamMenu.LeadCam) {
+                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
+                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
+                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
+                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
+                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
+                    }
+
+                    // Update menu stuff according to loaded values
+                    angCamModifierList.ListIndex = (int)((angCamModifier - 0.0001f + 1f) / 0.025f);
+                    angCamInterpolationList.ListIndex = (int)((angCamInterpolation) / 0.005f);
+                    chaseCamOffsetList.ListIndex = (chaseCamOffset);
+                    posInterpolationList.ListIndex = (int)((posInterpolation) / 0.01f);
+                    rollInterpolationList.ListIndex = (int)((cameraRollInterpolation) / 0.005f);
+                    pitchInterpolationList.ListIndex = (int)((cameraPitchInterpolation) / 0.005f);
+                    chaseCamMaxAngleList.ListIndex = (int)((maxAngle - 25f) / 5f);
+                    customCamFOVList.ListIndex = (int)(fov - 20.0f);
+                    customCamForwardOffsetList.ListIndex = (int)((forwardOffset + 8f) / 0.05f);
+                    customCamUpOffsetList.ListIndex = (int)((upOffset + 5f) / 0.05f);
+                    customCamSideOffsetList.ListIndex = (int)((sideOffset + 5f) / 0.05f);
+                    lockPosOffsetCheckbox.Checked = lockOffsetPos;
+                    linearPosCheckbox.Checked = linearPosOffset;
+                    pedLockCheckbox.Checked = pedLock;
+
+                    presetsMenu.GoBack();
+                    menu.RefreshIndex();
+                }
+                if (item == fpvCamPreset) {
+                    Notify.Info("Switching to FPV camera base. Tune XYZ offsets to your car.");
+
+                    currentlySelectedCamera = new KeyValuePair<string, CameraInfo>("_2__", CustomCamPresets.fpvCam1);
+                    SpawnSavedCamera();
+
+                    MainMenu.EnhancedCamMenu.ResetCameras();
+                    if (MainMenu.EnhancedCamMenu.LeadCam) {
+                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.driftCamera;
+                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
+                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
+                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+                        World.RenderingCamera = MainMenu.EnhancedCamMenu.chaseCamera;
+                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
+                    }
+
+                    // Update menu stuff according to loaded values
+                    angCamModifierList.ListIndex = (int)((angCamModifier - 0.0001f + 1f) / 0.025f);
+                    angCamInterpolationList.ListIndex = (int)((angCamInterpolation) / 0.005f);
+                    chaseCamOffsetList.ListIndex = (chaseCamOffset);
+                    posInterpolationList.ListIndex = (int)((posInterpolation) / 0.01f);
+                    rollInterpolationList.ListIndex = (int)((cameraRollInterpolation) / 0.005f);
+                    pitchInterpolationList.ListIndex = (int)((cameraPitchInterpolation) / 0.005f);
+                    chaseCamMaxAngleList.ListIndex = (int)((maxAngle - 25f) / 5f);
+                    customCamFOVList.ListIndex = (int)(fov - 20.0f);
+                    customCamForwardOffsetList.ListIndex = (int)((forwardOffset + 8f) / 0.05f);
+                    customCamUpOffsetList.ListIndex = (int)((upOffset + 5f) / 0.05f);
+                    customCamSideOffsetList.ListIndex = (int)((sideOffset + 5f) / 0.05f);
+                    lockPosOffsetCheckbox.Checked = lockOffsetPos;
+                    linearPosCheckbox.Checked = linearPosOffset;
+                    pedLockCheckbox.Checked = pedLock;
+
+                    presetsMenu.GoBack();
+                    menu.RefreshIndex();
+                }
+            };
+
+            MenuItem buttonPresets = new MenuItem("Presets menu", "Get started here") {
+                Label = "→→→"
+            };
+            menu.AddMenuItem(buttonPresets);
+            MenuController.AddSubmenu(menu, presetsMenu);
+            MenuController.BindMenuItem(menu, presetsMenu, buttonPresets);
+            presetsMenu.RefreshIndex();
 
             #endregion
 
@@ -262,8 +354,8 @@ namespace vMenuClient {
                     angCamInterpolationList.ListIndex = (int)((angCamInterpolation) / 0.005f);
                     chaseCamOffsetList.ListIndex = (chaseCamOffset);
                     posInterpolationList.ListIndex = (int)((posInterpolation) / 0.01f);
-                    rollInterpolationList.ListIndex = (int)((cameraRollInterpolation) / 0.01f);
-                    pitchInterpolationList.ListIndex = (int)((cameraPitchInterpolation) / 0.01f);
+                    rollInterpolationList.ListIndex = (int)((cameraRollInterpolation) / 0.005f);
+                    pitchInterpolationList.ListIndex = (int)((cameraPitchInterpolation) / 0.005f);
                     chaseCamMaxAngleList.ListIndex = (int)((maxAngle - 25f) / 5f);
                     customCamFOVList.ListIndex = (int)(fov - 20.0f);
                     customCamForwardOffsetList.ListIndex = (int)((forwardOffset + 8f) / 0.05f);
@@ -335,10 +427,10 @@ namespace vMenuClient {
                     posInterpolation = ((_newIndex) * 0.01f);
                 }
                 if (_listItem == rollInterpolationList) {
-                    cameraRollInterpolation = ((_newIndex) * 0.01f);
+                    cameraRollInterpolation = ((_newIndex) * 0.005f);
                 }
                 if (_listItem == pitchInterpolationList) {
-                    cameraPitchInterpolation = ((_newIndex) * 0.01f);
+                    cameraPitchInterpolation = ((_newIndex) * 0.005f);
                 }
                 if (_listItem == chaseCamMaxAngleList) {
                     maxAngle = (float)(_newIndex * 5f + 25f);
@@ -538,7 +630,7 @@ namespace vMenuClient {
                                 pitch = CameraConstraints.ClampPitch(pitch);
                             }
                             // Finalize the rotation
-                            float yaw = (EnhancedCamera.userLookBehind) ? (newRot.Z + 179f) : (newRot.Z + EnhancedCamera.userYaw);
+                            float yaw = (EnhancedCamera.userLookBehind) ? (GetEntityRotation(vehicleEntity, 2).Z + 179.9f) : (newRot.Z + EnhancedCamera.userYaw);
                             pitch *= (EnhancedCamera.userLookBehind) ? (-1f) : (1f);
                             SetCamRot(MainMenu.EnhancedCamMenu.driftCamera.Handle, pitch + EnhancedCamera.userTilt, roll, yaw, 2);
 
@@ -684,7 +776,7 @@ namespace vMenuClient {
                                         pitch = CameraConstraints.ClampPitch(pitch);
                                     }
                                     // Finally, set the rotation
-                                    float yaw = (EnhancedCamera.userLookBehind) ? (newRot.Z + 179f) : (newRot.Z + EnhancedCamera.userYaw);
+                                    float yaw = (EnhancedCamera.userLookBehind) ? (GetEntityRotation(vehicleEntity, 2).Z + 179.9f) : (newRot.Z + EnhancedCamera.userYaw);
                                     MainMenu.EnhancedCamMenu.chaseCamera.Rotation = new Vector3(pitch + EnhancedCamera.userTilt, roll, yaw);
 
                                     // Update minimap
@@ -712,10 +804,10 @@ namespace vMenuClient {
         }
 
         #endregion
-        
+
         #region save/load
 
-        private struct CameraInfo {
+        public struct CameraInfo {
             public float angCamInterpolation_;
             public float angCamModifier_;
             public float posInterpolation_;
@@ -889,6 +981,43 @@ namespace vMenuClient {
             }
             await Delay(0);
         }
+
+        #endregion
+
+        #region presets
+
+        private static class CustomCamPresets{
+            public static CameraInfo tandemCam1 = new CameraInfo {
+                angCamInterpolation_ = 0.02f,
+                angCamModifier_ = 0.275f,
+                posInterpolation_ = 1f,
+                chaseCamMaxAngle_ = 75f,
+                linearPosOffset_ = false,
+                lockOffsetPos_ = false,
+                customCamFOV_ = 60.0f,
+                customCamForwardOffset_ = -5.6f,
+                customCamUpOffset_ = 2.65f,
+                customCamSideOffset_ = 0.0f,
+                cameraRollInterpolation_ = 0.045f,
+                cameraPitchInterpolation_ = 0.045f,
+                pedLock_ = true
+            };
+            public static CameraInfo fpvCam1 = new CameraInfo {
+                angCamInterpolation_ = 0.01f,
+                angCamModifier_ = 0.350f,
+                posInterpolation_ = 1f,
+                chaseCamMaxAngle_ = 75f,
+                linearPosOffset_ = false,
+                lockOffsetPos_ = true,
+                customCamFOV_ = 70.0f,
+                customCamForwardOffset_ = -0.2f,
+                customCamUpOffset_ = 0.6f,
+                customCamSideOffset_ = 0.35f,
+                cameraRollInterpolation_ = 0.195f,
+                cameraPitchInterpolation_ = 0.5f,
+                pedLock_ = false
+            };
+        };
 
         #endregion
     }
