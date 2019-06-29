@@ -159,7 +159,9 @@ namespace vMenuClient {
                 }
                 if (_listItem == fovList) {
                     droneFov = _newIndex * 5.0f + 30f;
-                    SetCamFov(MainMenu.EnhancedCamMenu.droneCamera.Handle, droneFov);
+                    if (MainMenu.EnhancedCamMenu.droneCamera != null) {
+                        SetCamFov(MainMenu.EnhancedCamMenu.droneCamera.Handle, droneFov);
+                    }
                 }
             };
 
