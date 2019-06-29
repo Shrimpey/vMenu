@@ -403,52 +403,21 @@ namespace vMenuClient {
                     maxAngle = (float)(_newIndex * 5f + 25f);
                 }
                 if (_listItem == customCamFOVList) {
-                    if ((MainMenu.EnhancedCamMenu.driftCamera != null) || (MainMenu.EnhancedCamMenu.chaseCamera != null))
-                        MainMenu.EnhancedCamMenu.ResetCameras();
                     fov = (float)(_newIndex * 1f + 20.0f);
                     if (MainMenu.EnhancedCamMenu.LeadCam) {
-                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
+                        SetCamFov(MainMenu.EnhancedCamMenu.driftCamera.Handle, fov);
                     } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
-                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
+                        SetCamFov(MainMenu.EnhancedCamMenu.chaseCamera.Handle, fov);
                     }
                 }
                 if (_listItem == customCamForwardOffsetList) {
-                    if ((MainMenu.EnhancedCamMenu.driftCamera != null) || (MainMenu.EnhancedCamMenu.chaseCamera != null))
-                        MainMenu.EnhancedCamMenu.ResetCameras();
                     forwardOffset = (float)(_newIndex * 0.05f - 8f);
-                    if (MainMenu.EnhancedCamMenu.LeadCam) {
-                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
-                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
-                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
-                    }
                 }
                 if (_listItem == customCamSideOffsetList) {
-                    if ((MainMenu.EnhancedCamMenu.driftCamera != null) || (MainMenu.EnhancedCamMenu.chaseCamera != null))
-                        MainMenu.EnhancedCamMenu.ResetCameras();
                     sideOffset = (float)(_newIndex * 0.05f - 5f);
-                    if (MainMenu.EnhancedCamMenu.LeadCam) {
-                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
-                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
-                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
-                    }
                 }
                 if (_listItem == customCamUpOffsetList) {
-                    if ((MainMenu.EnhancedCamMenu.driftCamera != null) || (MainMenu.EnhancedCamMenu.chaseCamera != null))
-                        MainMenu.EnhancedCamMenu.ResetCameras();
                     upOffset = (float)(_newIndex * 0.05f - 5f);
-                    if (MainMenu.EnhancedCamMenu.LeadCam) {
-                        MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
-                    } else if (MainMenu.EnhancedCamMenu.ChaseCam) {
-                        MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
-                    }
                 }
             };
 

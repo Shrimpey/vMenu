@@ -156,7 +156,6 @@ namespace vMenuClient {
         public class CamMath {
 
             public const float DegToRad = (float)Math.PI / 180.0f;
-
             /// <summary>
             /// Lerps two float values by a step
             /// </summary>
@@ -170,15 +169,14 @@ namespace vMenuClient {
             /// </summary>
             /// <returns>Angle between vectors in degrees</returns>
             public static float AngleBetween(Vector3 a, Vector3 b) {
-                float sinA = a.X * b.Y - b.X * a.Y;
-                float cosA = a.X * b.X + a.Y * b.Y;
+                double sinA = a.X * b.Y - b.X * a.Y;
+                double cosA = a.X * b.X + a.Y * b.Y;
                 return (float)Math.Atan2(sinA, cosA) / DegToRad;
             }
 
             public static Vector3 RotateRadians(Vector3 v, float degree) {
-                float radians = DegToRad * degree;
-                float ca = (float)Math.Cos(radians);
-                float sa = (float)Math.Sin(radians);
+                float ca = Cos(degree);
+                float sa = Sin(degree);
                 return new Vector3(ca * v.X - sa * v.Y, sa * v.X + ca * v.Y, v.Z);
             }
 
@@ -187,15 +185,15 @@ namespace vMenuClient {
             }
 
             public static float Fmod(float a, float b) {
-                return (a - b * (float)Math.Floor(a / b));
+                return (a - b * Floor(a / b));
             }
 
             public static Vector3 QuaternionToEuler(Quaternion q) {
-                double r11 = (double)(-2 * (q.X * q.Y - q.W * q.Z));
-                double r12 = (double)(q.W * q.W - q.X * q.X + q.Y * q.Y - q.Z * q.Z);
-                double r21 = (double)(2 * (q.Y * q.Z + q.W * q.X));
-                double r31 = (double)(-2 * (q.X * q.Z - q.W * q.Y));
-                double r32 = (double)(q.W * q.W - q.X * q.X - q.Y * q.Y + q.Z * q.Z);
+                double r11 = (-2 * (q.X * q.Y - q.W * q.Z));
+                double r12 = (q.W * q.W - q.X * q.X + q.Y * q.Y - q.Z * q.Z);
+                double r21 = (2 * (q.Y * q.Z + q.W * q.X));
+                double r31 = (-2 * (q.X * q.Z - q.W * q.Y));
+                double r32 = (q.W * q.W - q.X * q.X - q.Y * q.Y + q.Z * q.Z);
 
                 float ax = (float)Math.Asin(r21);
                 float ay = (float)Math.Atan2(r31, r32);
@@ -268,18 +266,6 @@ namespace vMenuClient {
         #region camera operations
 
         /// <summary>
-        /// Checks whether any of the custom camera is active, used
-        /// to disable background activity in OnTick functions
-        /// </summary>
-        /// <returns></returns>
-        public bool IsCustomCameraEnabled() {
-            if (MainMenu.EnhancedCamMenu != null)
-                return (MainMenu.EnhancedCamMenu.LeadCam || MainMenu.EnhancedCamMenu.ChaseCam || MainMenu.EnhancedCamMenu.DroneCam);
-            else
-                return false;
-        }
-
-        /// <summary>
         /// Creates a base camera for lead and chase cam that is not
         /// attached to any entity
         /// </summary>
@@ -322,38 +308,38 @@ namespace vMenuClient {
         /// </summary>
         /// <returns></returns>
         private async Task GeneralUpdate() {
-            if (IsCustomCameraEnabled()) {
-                // User controls the tilt offset
-                float tiltControl = ((float)(GetControlValue(1, 2) / 256f) - 0.5f);
-                float yawControl = ((float)(GetControlValue(1, 1) / 256f) - 0.5f);
-                userLookBehind = IsControlPressed(1, 26);
+            if (MainMenu.EnhancedCamMenu != null) {
+                if (MainMenu.EnhancedCamMenu.LeadCam || MainMenu.EnhancedCamMenu.ChaseCam) {
+                    // User controls the tilt offset
+                    float tiltControl = ((float)(GetControlValue(1, 2) / 256f) - 0.5f);
+                    float yawControl = ((float)(GetControlValue(1, 1) / 256f) - 0.5f);
+                    userLookBehind = IsControlPressed(1, 26);
 
-                if ((Math.Abs(tiltControl) > 0.01f) || (Math.Abs(yawControl) > 0.01f)) {
-                    //Account for difference in gamepad and mouse acceleration
-                    if (IsInputDisabled(1)) {
-                        userTilt -= tiltControl * 12f;
-                        userYaw -= yawControl * 32;
-                    } else {
-                        userTilt -= tiltControl;
-                        userYaw -= yawControl * 4f;
+                    if ((Math.Abs(tiltControl) > 0.01f) || (Math.Abs(yawControl) > 0.01f)) {
+                        //Account for difference in gamepad and mouse acceleration
+                        if (IsInputDisabled(1)) {
+                            userTilt -= tiltControl * 12f;
+                            userYaw -= yawControl * 32;
+                        } else {
+                            userTilt -= tiltControl;
+                            userYaw -= yawControl * 4f;
+                        }
+                        userTilt = (Math.Abs(userTilt) > 80f) ? (Math.Sign(userTilt) * 80f) : (userTilt);
+
+                        userYaw = (CamMath.Fmod((userYaw + 180.0f), 360.0f) - 180.0f);
+                        yawReturnTimer = 1f;    // Set the timer before yaw starts to return to 0f
+
+                        // Slow return of user yaw to 0f
+                    } else if ((Math.Abs(yawControl) <= 0.01f) && (Math.Abs(userYaw) > (USER_YAW_RETURN_INTERPOLATION + 0.01f))) {
+                        // Only return to 0f if user is not moving
+                        int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
+                        if (yawReturnTimer <= 0f) {
+                            float speedModifier = (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) < 3f) ? (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) / 3f) : (1f);
+                            userYaw = Math.Sign(userYaw) * CamMath.Lerp(Math.Abs(userYaw), 0f, USER_YAW_RETURN_INTERPOLATION * speedModifier);
+                        } else {
+                            yawReturnTimer -= USER_YAW_RETURN_INTERPOLATION;
+                        }
                     }
-                    userTilt = (Math.Abs(userTilt) > 80f) ? (Math.Sign(userTilt) * 80f) : (userTilt);
-
-                    userYaw = (CamMath.Fmod((userYaw + 180.0f), 360.0f) - 180.0f);
-                    yawReturnTimer = 1f;    // Set the timer before yaw starts to return to 0f
-
-                    // Slow return of user yaw to 0f
-                } else if ((Math.Abs(yawControl) <= 0.01f) && (Math.Abs(userYaw) > (USER_YAW_RETURN_INTERPOLATION + 0.01f))) {
-                    // Only return to 0f if user is not moving
-                    int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
-                    if (yawReturnTimer <= 0f) {
-                        float speedModifier = (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) < 3f) ? (Math.Abs(GetEntityVelocity(vehicleEntity).Length()) / 3f) : (1f);
-                        userYaw = Math.Sign(userYaw) * CamMath.Lerp(Math.Abs(userYaw), 0f, USER_YAW_RETURN_INTERPOLATION * speedModifier);
-                    } else {
-                        yawReturnTimer -= USER_YAW_RETURN_INTERPOLATION;
-                    }
-                } else {
-                    await Delay(0);
                 }
             } else {
                 await Delay(1);
@@ -362,9 +348,12 @@ namespace vMenuClient {
 
         private async Task SlowUpdate() {
             // Refocus render distance of the camera (too heavy for normal update)
-            if (IsCustomCameraEnabled()) {
-                if (MainMenu.EnhancedCamMenu.droneCamera != null) {
-                    SetFocusArea(MainMenu.EnhancedCamMenu.droneCamera.Position.X, MainMenu.EnhancedCamMenu.droneCamera.Position.Y, MainMenu.EnhancedCamMenu.droneCamera.Position.Z, 0, 0, 0);
+            if (MainMenu.EnhancedCamMenu != null) {
+                if (MainMenu.EnhancedCamMenu.DroneCam) {
+                    if (MainMenu.EnhancedCamMenu.droneCamera != null) {
+                        SetFocusArea(MainMenu.EnhancedCamMenu.droneCamera.Position.X, MainMenu.EnhancedCamMenu.droneCamera.Position.Y, MainMenu.EnhancedCamMenu.droneCamera.Position.Z, 0, 0, 0);
+                        await Delay(250);
+                    }
                 }
             } else {
                 await Delay(1);

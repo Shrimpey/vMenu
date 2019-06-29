@@ -87,7 +87,7 @@ namespace vMenuClient {
             for (float i = 0.0f; i <= 70.0f; i += 5f) {
                 tiltAngleValues.Add(i.ToString("0.0"));
             }
-            MenuListItem tiltAngleList = new MenuListItem("Tilt angle", tiltAngleValues, 12, "Defines how much in camera tilted relative to the drone.") {
+            MenuListItem tiltAngleList = new MenuListItem("Tilt angle", tiltAngleValues, 12, "Defines how much is camera tilted relative to the drone.") {
                 ShowColorPanel = false
             };
             // FOV
@@ -263,10 +263,10 @@ namespace vMenuClient {
 
         // Get user input for drone camera
         private void UpdateDroneControls() {
-            drone.acceleration = ((float)(GetDisabledControlNormal(0, 71)) / 2f);
-            drone.controlPitch = ((float)(GetDisabledControlNormal(1, 2)) / 2f);
-            drone.controlYaw = -((float)(GetDisabledControlNormal(1, 9)) / 2f);
-            drone.controlRoll = ((float)(GetDisabledControlNormal(1, 1)) / 2f);
+            drone.acceleration = ((GetDisabledControlNormal(0, 71)) / 2f);
+            drone.controlPitch = ((GetDisabledControlNormal(1, 2)) / 2f);
+            drone.controlYaw = -((GetDisabledControlNormal(1, 9)) / 2f);
+            drone.controlRoll = ((GetDisabledControlNormal(1, 1)) / 2f);
 
             // Account for mouse controls
             if (IsInputDisabled(1)) {
@@ -298,7 +298,7 @@ namespace vMenuClient {
         private void UpdateDronePosition() {
             // For dividing velocity into two vectors based on camera tilt
             // compared to drone itself
-            float staticTilt = (float)Math.Tan((double)(tiltAngle * EnhancedCamera.CamMath.DegToRad));
+            float staticTilt = Tan(tiltAngle);
 
             // Timeframe used for calculations
             float deltaTime = timestepMult * Timestep() / TIMESTEP_DELIMITER;
