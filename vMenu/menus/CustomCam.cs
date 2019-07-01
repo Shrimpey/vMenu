@@ -463,6 +463,7 @@ namespace vMenuClient {
         // Consts
         private const float MAX_ANG_VEL_OFFSET = 1.0f;
         private const float ROTATION_NORMALIZE = 100.0f;
+        private const float TIMESTEP_DELIMITER = 0.015f;
 
         /// <summary>
         /// Changes main render camera behaviour, follows car with specified degree of freedom
@@ -476,6 +477,8 @@ namespace vMenuClient {
                     int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
                     if (vehicleEntity > 0) {
                         if (MainMenu.EnhancedCamMenu.driftCamera != null) {
+                            // Calculate timestep to account for framerate drops
+                            float deltaTime = Timestep() / CustomCam.TIMESTEP_DELIMITER;
                             // Get vehicle's angular velocity
                             float angularVel = GetEntityRotationVelocity(vehicleEntity).Z;
                             // Keep it in reasonable range
@@ -484,7 +487,6 @@ namespace vMenuClient {
                             angularVel = EnhancedCamera.CamMath.Lerp(angularVelOld, angularVel, angCamInterpolation);
                             // Save the value to lerp with it in the next frame
                             angularVelOld = angularVel;
-
                             // Calculating target camera rotation
                             float finalRotation = -angularVel * angCamModifier * ROTATION_NORMALIZE;
 
@@ -493,9 +495,9 @@ namespace vMenuClient {
 
                             // Setting the position offset also based on angular velocity
                             if (!lockOffsetPos) {
-                                oldPosXOffset = EnhancedCamera.CamMath.Lerp(oldPosXOffset, finalRotation, posInterpolation);
+                                oldPosXOffset = EnhancedCamera.CamMath.Lerp(oldPosXOffset, finalRotation, posInterpolation * deltaTime);
                             } else {
-                                oldPosXOffset = 0f;
+                                oldPosXOffset = finalRotation;
                             }
 
                             // Get the static offset based on user's input
@@ -513,7 +515,7 @@ namespace vMenuClient {
                             // Calculate final offset taking into consideration dynamic offset (oldPosXOffset), static
                             // offset and the offset resulting from rotating the camera around the car
                             if (!linearPosOffset) {
-                                if (oldPosXOffset != 0f) {
+                                if (oldPosXOffset != finalRotation) {
                                     float rotation = oldPosXOffset + EnhancedCamera.userYaw;
                                     if (pedLock) {
                                         MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, Vector3.ForwardLH, rotation * EnhancedCamera.CamMath.DegToRad);
@@ -525,13 +527,14 @@ namespace vMenuClient {
                                             EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, 179f * EnhancedCamera.CamMath.DegToRad);
                                     }
                                 } else {
-                                    MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition;
                                     if (EnhancedCamera.userLookBehind) {
                                         MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position +
                                                                                         staticPosition -
                                                                                         (veh.RightVector * sideOffset) +
                                                                                         veh.ForwardVector * 3.5f +
                                                                                         veh.UpVector * 0.5f;
+                                    } else {
+                                        MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition;
                                     }
                                 }
                             } else {
@@ -540,7 +543,7 @@ namespace vMenuClient {
                             }
 
                             // Calculate target rotation as a heading in given range
-                            Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((finalRotation + GetEntityRotation(vehicleEntity, 2).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
+                            Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((oldPosXOffset + GetEntityRotation(vehicleEntity, 2).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
                             float roll = 0f;
                             float pitch = 0f;
                             // Clamp values
@@ -552,14 +555,13 @@ namespace vMenuClient {
                                 pitch = CameraConstraints.ClampPitch(pitch);
                             } else {
                                 // Calculate smooth roll and pitch rotation
-                                roll = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
-                                pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.X - EnhancedCamera.userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
+                                roll = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation * deltaTime);
+                                pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.X - EnhancedCamera.userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation * deltaTime);
                                 roll = CameraConstraints.ClampRoll(roll);
                                 pitch = CameraConstraints.ClampPitch(pitch);
                             }
                             // Finalize the rotation
                             float yaw = (EnhancedCamera.userLookBehind) ? (GetEntityRotation(vehicleEntity, 2).Z + 179.9f) : (newRot.Z + EnhancedCamera.userYaw);
-                            pitch *= (EnhancedCamera.userLookBehind) ? (-1f) : (1f);
                             SetCamRot(MainMenu.EnhancedCamMenu.driftCamera.Handle, pitch + EnhancedCamera.userTilt, roll, yaw, 2);
 
                             // Update minimap

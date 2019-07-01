@@ -209,14 +209,12 @@ namespace vMenuClient {
         public void SwitchCameraToDrift() {
             SwitchToGameplayCam();
             LeadCam = true;
-            //EnableMenus();
             leadCam.Checked = true;
         }
 
         public void SwitchCameraToChase() {
             SwitchToGameplayCam();
             ChaseCam = true;
-            //EnableMenus();
             chaseCam.Checked = true;
         }
 
@@ -224,7 +222,6 @@ namespace vMenuClient {
             LeadCam = false;
             ChaseCam = false;
             DroneCam = false;
-            //DisableMenus();
             ResetCameras();
             leadCam.Checked = false;
             chaseCam.Checked = false;
@@ -273,9 +270,6 @@ namespace vMenuClient {
         public Camera CreateNonAttachedCamera() {
             // Create new camera as a copy of GameplayCamera
             Camera newCam = World.CreateCamera(GameplayCamera.Position, GameplayCamera.Rotation, CustomCam.fov);
-            newCam.FarClip = GetGameplayCamFarClip();
-            newCam.DepthOfFieldStrength = 50f;
-            newCam.MotionBlurStrength = 0.1f;
             newCam.IsActive = true;
             RenderScriptCams(true, true, 500, true, true);
             return newCam;

@@ -29,7 +29,7 @@ namespace vMenuClient {
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 gravityMultValues.Add(i.ToString("0.000"));
             }
-            MenuListItem gravityMultList = new MenuListItem("Gravity multiplier", gravityMultValues, 12, "Modifies gravity constant, higher values makes drone fall quicker during freefall.") {
+            MenuListItem gravityMultList = new MenuListItem("Gravity multiplier", gravityMultValues, 10, "Modifies gravity constant, higher values makes drone fall quicker during freefall.") {
                 ShowColorPanel = false
             };
 
@@ -38,7 +38,7 @@ namespace vMenuClient {
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 timestepValues.Add(i.ToString("0.000"));
             }
-            MenuListItem timestepMultList = new MenuListItem("Timestep multiplier", timestepValues, 11, "Affects gravity and drone responsiveness.") {
+            MenuListItem timestepMultList = new MenuListItem("Timestep multiplier", timestepValues, 10, "Affects gravity and drone responsiveness.") {
                 ShowColorPanel = false
             };
 
@@ -47,7 +47,7 @@ namespace vMenuClient {
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 dragMultValues.Add(i.ToString("0.000"));
             }
-            MenuListItem dragMultList = new MenuListItem("Drag multiplier", dragMultValues, 9, "How much air ressistance there is - higher values make drone lose velocity quicker.") {
+            MenuListItem dragMultList = new MenuListItem("Drag multiplier", dragMultValues, 10, "How much air ressistance there is - higher values make drone lose velocity quicker.") {
                 ShowColorPanel = false
             };
 
@@ -56,7 +56,7 @@ namespace vMenuClient {
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 accelerationMultValues.Add(i.ToString("0.000"));
             }
-            MenuListItem accelerationMultList = new MenuListItem("Acceleration multiplier", accelerationMultValues, 20, "How responsive drone is in terms of acceleration.") {
+            MenuListItem accelerationMultList = new MenuListItem("Acceleration multiplier", accelerationMultValues, 10, "How responsive drone is in terms of acceleration.") {
                 ShowColorPanel = false
             };
 
@@ -65,21 +65,21 @@ namespace vMenuClient {
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 rotationMultXValues.Add(i.ToString("0.000"));
             }
-            MenuListItem rotationMultXList = new MenuListItem("Pitch multiplier", rotationMultXValues, 26, "How responsive drone is in terms of rotation (pitch).") {
+            MenuListItem rotationMultXList = new MenuListItem("Pitch multiplier", rotationMultXValues, 10, "How responsive drone is in terms of rotation (pitch).") {
                 ShowColorPanel = false
             };
             List<string> rotationMultYValues = new List<string>();
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 rotationMultYValues.Add(i.ToString("0.000"));
             }
-            MenuListItem rotationMultYList = new MenuListItem("Roll multiplier", rotationMultYValues, 26, "How responsive drone is in terms of rotation (roll).") {
+            MenuListItem rotationMultYList = new MenuListItem("Roll multiplier", rotationMultYValues, 10, "How responsive drone is in terms of rotation (roll).") {
                 ShowColorPanel = false
             };
             List<string> rotationMultZValues = new List<string>();
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 rotationMultZValues.Add(i.ToString("0.000"));
             }
-            MenuListItem rotationMultZList = new MenuListItem("Yaw multiplier", rotationMultZValues, 20, "How responsive drone is in terms of rotation (yaw).") {
+            MenuListItem rotationMultZList = new MenuListItem("Yaw multiplier", rotationMultZValues, 10, "How responsive drone is in terms of rotation (yaw).") {
                 ShowColorPanel = false
             };
             // Tilt angle
@@ -87,7 +87,7 @@ namespace vMenuClient {
             for (float i = 0.0f; i <= 70.0f; i += 5f) {
                 tiltAngleValues.Add(i.ToString("0.0"));
             }
-            MenuListItem tiltAngleList = new MenuListItem("Tilt angle", tiltAngleValues, 12, "Defines how much is camera tilted relative to the drone.") {
+            MenuListItem tiltAngleList = new MenuListItem("Tilt angle", tiltAngleValues, 9, "Defines how much is camera tilted relative to the drone.") {
                 ShowColorPanel = false
             };
             // FOV
@@ -184,21 +184,21 @@ namespace vMenuClient {
         private DroneInfo drone;
 
         // Parameters for user to tune
-        private static float gravityMult = 1.1f;
-        private static float timestepMult = 1.05f;
-        private static float dragMult = 0.95f;
-        private static Vector3 rotationMult = new Vector3(1.8f, 1.8f, 1.5f);
-        private static float accelerationMult = 1.5f;
-        private static float tiltAngle = 60.0f;
+        private static float gravityMult = 1.0f;
+        private static float timestepMult = 1.0f;
+        private static float dragMult = 1.0f;
+        private static Vector3 rotationMult = new Vector3(1f, 1f, 1f);
+        private static float accelerationMult = 1f;
+        private static float tiltAngle = 45.0f;
         private static float droneFov = 80.0f;
         private static float maxVel = 30.0f;
 
         // Const drone parameters
-        private const float GRAVITY_CONST = 9.8f;       // Gravity force constant ///9.8f
-        private const float TIMESTEP_DELIMITER = 90.15f;   // Less - gravity is stronger ///60.15f
-        private const float DRONE_DRAG = 0.0020f;        // Air resistance ///0.0015f
-        private const float DRONE_AGILITY_ROT = 7.5f;   // How quick is rotational response of the drone ///6.5f
-        private const float DRONE_AGILITY_VEL = 130f; // How quick is velocity and acceleration response ///30f
+        private const float GRAVITY_CONST = 9.8f;       // Gravity force constant
+        private const float TIMESTEP_DELIMITER = 90.15f;   // Less - gravity is stronger
+        private const float DRONE_DRAG = 0.0020f;        // Air resistance
+        private const float DRONE_AGILITY_ROT = 50000f;   // How quick is rotational response of the drone
+        private const float DRONE_AGILITY_VEL = 210f; // How quick is velocity and acceleration response
         private const float DRONE_MAX_VELOCITY = 0.01f; // Max velocity of the drone
 
         /// <summary>
@@ -280,11 +280,12 @@ namespace vMenuClient {
 
         // Update drone's rotation based on input
         private void UpdateDroneRotation() {
+            float deltaTime = timestepMult * Timestep() / TIMESTEP_DELIMITER;
 
             // Calculate delta of rotation based on user input
-            float deltaPitch = drone.controlPitch * DRONE_AGILITY_ROT * 0.70f * rotationMult.X;
-            float deltaYaw = drone.controlYaw * DRONE_AGILITY_ROT * 0.6f * rotationMult.Z;
-            float deltaRoll = drone.controlRoll * DRONE_AGILITY_ROT * 0.75f * rotationMult.Y;
+            float deltaPitch = drone.controlPitch * DRONE_AGILITY_ROT * 0.70f * rotationMult.X * deltaTime;
+            float deltaYaw = drone.controlYaw * DRONE_AGILITY_ROT * 0.6f * rotationMult.Z * deltaTime;
+            float deltaRoll = drone.controlRoll * DRONE_AGILITY_ROT * 0.75f * rotationMult.Y * deltaTime;
 
             // Rotate quaternion
             drone.rotation *= Quaternion.RotationAxis(Vector3.Up, deltaRoll * EnhancedCamera.CamMath.DegToRad);
@@ -321,7 +322,7 @@ namespace vMenuClient {
 
             // Clamp velocity to maximum with some smoothing
             if (Math.Abs(drone.velocity.Length()) > maxVel * DRONE_MAX_VELOCITY) {
-                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.08f);
+                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.05f);
             }
 
             // Update camera position based on velocity values
