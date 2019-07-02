@@ -14,6 +14,9 @@ namespace vMenuClient {
 
         private Menu menu;
 
+        private static bool HoverMode = false;
+        private MenuCheckboxItem hoverMode;
+
         // Constructor
         public DroneCam() {
             Tick += RunDroneCam;
@@ -24,6 +27,9 @@ namespace vMenuClient {
 
             #region main parameters
 
+            // Hover mode checkbox
+            hoverMode = new MenuCheckboxItem("Enable hover mode", "Camera behaves more like a stabilized drone for filmmaking rather than racing drone.", false);
+            
             // Gravity multiplier
             List<string> gravityMultValues = new List<string>();
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
@@ -44,10 +50,10 @@ namespace vMenuClient {
 
             // Drag multiplier
             List<string> dragMultValues = new List<string>();
-            for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
+            for (float i = 0.0f; i <= 4.0f; i += 0.050f) {
                 dragMultValues.Add(i.ToString("0.000"));
             }
-            MenuListItem dragMultList = new MenuListItem("Drag multiplier", dragMultValues, 10, "How much air ressistance there is - higher values make drone lose velocity quicker.") {
+            MenuListItem dragMultList = new MenuListItem("Drag multiplier", dragMultValues, 20, "How much air ressistance there is - higher values make drone lose velocity quicker.") {
                 ShowColorPanel = false
             };
 
@@ -84,7 +90,7 @@ namespace vMenuClient {
             };
             // Tilt angle
             List<string> tiltAngleValues = new List<string>();
-            for (float i = 0.0f; i <= 70.0f; i += 5f) {
+            for (float i = 0.0f; i <= 80.0f; i += 5f) {
                 tiltAngleValues.Add(i.ToString("0.0"));
             }
             MenuListItem tiltAngleList = new MenuListItem("Tilt angle", tiltAngleValues, 9, "Defines how much is camera tilted relative to the drone.") {
@@ -111,6 +117,8 @@ namespace vMenuClient {
 
             #region adding menu items
 
+            menu.AddMenuItem(hoverMode);
+
             menu.AddMenuItem(gravityMultList);
             menu.AddMenuItem(timestepMultList);
             menu.AddMenuItem(dragMultList);
@@ -126,6 +134,14 @@ namespace vMenuClient {
 
             #region handling menu changes
 
+            // Handle checkbox
+            menu.OnCheckboxChange += (_menu, _item, _index, _checked) => {
+                if (_item == hoverMode) {
+                    HoverMode = _checked;
+                }
+            };
+
+            // Handle sliders
             menu.OnListIndexChange += (_menu, _listItem, _oldIndex, _newIndex, _itemIndex) => {
                 if (_listItem == gravityMultList) {
                     gravityMult = _newIndex * 0.05f + 0.5f;
@@ -134,7 +150,7 @@ namespace vMenuClient {
                     timestepMult = _newIndex * 0.05f + 0.5f;
                 }
                 if (_listItem == dragMultList) {
-                    dragMult = _newIndex * 0.05f + 0.5f;
+                    dragMult = _newIndex * 0.05f;
                 }
                 if (_listItem == accelerationMultList) {
                     accelerationMult = _newIndex * 0.05f + 0.5f;
@@ -197,7 +213,7 @@ namespace vMenuClient {
         private const float GRAVITY_CONST = 9.8f;       // Gravity force constant
         private const float TIMESTEP_DELIMITER = 90.15f;   // Less - gravity is stronger
         private const float DRONE_DRAG = 0.0020f;        // Air resistance
-        private const float DRONE_AGILITY_ROT = 50000f;   // How quick is rotational response of the drone
+        private const float DRONE_AGILITY_ROT = 55000f;   // How quick is rotational response of the drone
         private const float DRONE_AGILITY_VEL = 210f; // How quick is velocity and acceleration response
         private const float DRONE_MAX_VELOCITY = 0.01f; // Max velocity of the drone
 
@@ -239,6 +255,7 @@ namespace vMenuClient {
         private struct DroneInfo {
             // User input
             public float acceleration;
+            public float deceleration;
             public float controlPitch;
             public float controlYaw;
             public float controlRoll;
@@ -266,6 +283,7 @@ namespace vMenuClient {
         // Get user input for drone camera
         private void UpdateDroneControls() {
             drone.acceleration = ((GetDisabledControlNormal(0, 71)) / 2f);
+            drone.deceleration = ((GetDisabledControlNormal(0, 72)) / 2f);
             drone.controlPitch = ((GetDisabledControlNormal(1, 2)) / 2f);
             drone.controlYaw = -((GetDisabledControlNormal(1, 9)) / 2f);
             drone.controlRoll = ((GetDisabledControlNormal(1, 1)) / 2f);
@@ -311,8 +329,15 @@ namespace vMenuClient {
 
             // Calculate velocity based on acceleration
             // Drone is tilted compared to camera, so there are two vectors
+            // Forward and up are opposite due to naming conventions mismatch
             float deltaVelocityForward = drone.acceleration * DRONE_AGILITY_VEL * accelerationMult * 0.5f * deltaTime;          // dV = a*dt
             float deltaVelocityUp = drone.acceleration * DRONE_AGILITY_VEL * accelerationMult * (staticTilt / 2f) * deltaTime;  // dV = a*dt
+            // Enable deceleration when in hover mode and get rid of gravity force
+            if (HoverMode) {
+                deltaVelocityForward -= drone.deceleration * DRONE_AGILITY_VEL * accelerationMult * 0.5f * deltaTime;
+                deltaVelocityUp += drone.deceleration * DRONE_AGILITY_VEL * accelerationMult * (staticTilt / 2f) * deltaTime;
+                deltaDownForce = 0f;
+            }
 
             drone.velocity += MainMenu.EnhancedCamMenu.droneCamera.ForwardVector * deltaVelocityForward;    // V1 = V0 + dV
             drone.velocity -= MainMenu.EnhancedCamMenu.droneCamera.UpVector * deltaVelocityUp;              // V1 = V0 + dV
@@ -322,7 +347,7 @@ namespace vMenuClient {
 
             // Clamp velocity to maximum with some smoothing
             if (Math.Abs(drone.velocity.Length()) > maxVel * DRONE_MAX_VELOCITY) {
-                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.05f);
+                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.1f);
             }
 
             // Update camera position based on velocity values
