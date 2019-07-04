@@ -88,9 +88,9 @@ namespace vMenuClient {
             pitchInterpolationList.ListIndex = (int)((cameraPitchInterpolation) / 0.005f);
             chaseCamMaxAngleList.ListIndex = (int)((maxAngle - 25f) / 5f);
             customCamFOVList.ListIndex = (int)(fov - 20.0f);
-            customCamForwardOffsetList.ListIndex = (int)((forwardOffset + 8f) / 0.05f);
-            customCamUpOffsetList.ListIndex = (int)((upOffset + 5f) / 0.05f);
-            customCamSideOffsetList.ListIndex = (int)((sideOffset + 5f) / 0.05f);
+            customCamForwardOffsetList.ListIndex = (int)((forwardOffset + 8f) / 0.025f);
+            customCamUpOffsetList.ListIndex = (int)((upOffset + 5f) / 0.025f);
+            customCamSideOffsetList.ListIndex = (int)((sideOffset + 5f) / 0.025f);
             lockPosOffsetCheckbox.Checked = lockOffsetPos;
             linearPosCheckbox.Checked = linearPosOffset;
             pedLockCheckbox.Checked = pedLock;
@@ -186,27 +186,27 @@ namespace vMenuClient {
             };
 
             // Custom cam forward offset
-            List<string> customCamForwardOffsetValues = new List<string>(100);
-            for (float i = -8; i <= 8; i += 0.05f) {
-                customCamForwardOffsetValues.Add((i).ToString("0.00"));
+            List<string> customCamForwardOffsetValues = new List<string>();
+            for (float i = -8; i <= 8; i += 0.025f) {
+                customCamForwardOffsetValues.Add((i).ToString("0.000"));
             }
-            customCamForwardOffsetList = new MenuListItem("Y offset", customCamForwardOffsetValues, 65, "Custom camera offset in forward direction. (-8,8)") {
+            customCamForwardOffsetList = new MenuListItem("Y offset", customCamForwardOffsetValues, 130, "Custom camera offset in forward direction. (-8,8)") {
                 ShowColorPanel = false
             };
             // Custom cam side offset
-            List<string> customCamSideOffsetValues = new List<string>(100);
-            for (float i = -5; i <= 8; i += 0.05f) {
-                customCamSideOffsetValues.Add((i).ToString("0.00"));
+            List<string> customCamSideOffsetValues = new List<string>();
+            for (float i = -5; i <= 8; i += 0.025f) {
+                customCamSideOffsetValues.Add((i).ToString("0.000"));
             }
-            customCamSideOffsetList = new MenuListItem("X offset", customCamSideOffsetValues, 100, "Custom camera offset in side direction. (-5,8)") {
+            customCamSideOffsetList = new MenuListItem("X offset", customCamSideOffsetValues, 200, "Custom camera offset in side direction. (-5,8)") {
                 ShowColorPanel = false
             };
             // Custom cam up offset
-            List<string> customCamUpOffsetValues = new List<string>(100);
-            for (float i = -5; i <= 8; i += 0.05f) {
-                customCamUpOffsetValues.Add((i).ToString("0.00"));
+            List<string> customCamUpOffsetValues = new List<string>();
+            for (float i = -5; i <= 8; i += 0.025f) {
+                customCamUpOffsetValues.Add((i).ToString("0.000"));
             }
-            customCamUpOffsetList = new MenuListItem("Z offset", customCamUpOffsetValues, 141, "Custom camera offset in up direction. (-5,8)") {
+            customCamUpOffsetList = new MenuListItem("Z offset", customCamUpOffsetValues, 282, "Custom camera offset in up direction. (-5,8)") {
                 ShowColorPanel = false
             };
 
@@ -249,8 +249,12 @@ namespace vMenuClient {
             MenuItem fpvCamPreset = new MenuItem("FPV camera base", "Best to use with chicken model") {
                 Label = $"→→→"
             };
+            MenuItem NFSCamPreset = new MenuItem("NFS camera", "Arcade game experience") {
+                Label = $"→→→"
+            };
             presetsMenu.AddMenuItem(tandemCamPreset);
             presetsMenu.AddMenuItem(fpvCamPreset);
+            presetsMenu.AddMenuItem(NFSCamPreset);
 
             presetsMenu.OnItemSelect += (sender, item, index) => {
                 if (item == tandemCamPreset) {
@@ -267,6 +271,16 @@ namespace vMenuClient {
                     Notify.Info("Switching to FPV camera base. Tune XYZ offsets to your car.");
 
                     currentlySelectedCamera = new KeyValuePair<string, CameraInfo>("_2__", CustomCamPresets.fpvCam1);
+                    SpawnSavedCamera();
+
+                    // Update menu stuff according to loaded values
+                    UpdateParams();
+                    presetsMenu.GoBack();
+                }
+                if (item == NFSCamPreset) {
+                    Notify.Info("Switching to NFS camera. Tune XYZ offsets to your car.");
+
+                    currentlySelectedCamera = new KeyValuePair<string, CameraInfo>("_3__", CustomCamPresets.NFSCam);
                     SpawnSavedCamera();
 
                     // Update menu stuff according to loaded values
@@ -411,13 +425,13 @@ namespace vMenuClient {
                     }
                 }
                 if (_listItem == customCamForwardOffsetList) {
-                    forwardOffset = (float)(_newIndex * 0.05f - 8f);
+                    forwardOffset = (float)(_newIndex * 0.025f - 8f);
                 }
                 if (_listItem == customCamSideOffsetList) {
-                    sideOffset = (float)(_newIndex * 0.05f - 5f);
+                    sideOffset = (float)(_newIndex * 0.025f - 5f);
                 }
                 if (_listItem == customCamUpOffsetList) {
-                    upOffset = (float)(_newIndex * 0.05f - 5f);
+                    upOffset = (float)(_newIndex * 0.025f - 5f);
                 }
             };
 
@@ -463,6 +477,7 @@ namespace vMenuClient {
         // Consts
         private const float MAX_ANG_VEL_OFFSET = 1.0f;
         private const float ROTATION_NORMALIZE = 100.0f;
+        private const float TIMESTEP_DELIMITER = 0.015f;
 
         /// <summary>
         /// Changes main render camera behaviour, follows car with specified degree of freedom
@@ -476,6 +491,8 @@ namespace vMenuClient {
                     int vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false);
                     if (vehicleEntity > 0) {
                         if (MainMenu.EnhancedCamMenu.driftCamera != null) {
+                            // Calculate timestep to account for framerate drops
+                            float deltaTime = Timestep() / CustomCam.TIMESTEP_DELIMITER;
                             // Get vehicle's angular velocity
                             float angularVel = GetEntityRotationVelocity(vehicleEntity).Z;
                             // Keep it in reasonable range
@@ -484,7 +501,6 @@ namespace vMenuClient {
                             angularVel = EnhancedCamera.CamMath.Lerp(angularVelOld, angularVel, angCamInterpolation);
                             // Save the value to lerp with it in the next frame
                             angularVelOld = angularVel;
-
                             // Calculating target camera rotation
                             float finalRotation = -angularVel * angCamModifier * ROTATION_NORMALIZE;
 
@@ -493,9 +509,9 @@ namespace vMenuClient {
 
                             // Setting the position offset also based on angular velocity
                             if (!lockOffsetPos) {
-                                oldPosXOffset = EnhancedCamera.CamMath.Lerp(oldPosXOffset, finalRotation, posInterpolation);
+                                oldPosXOffset = EnhancedCamera.CamMath.Lerp(oldPosXOffset, finalRotation, posInterpolation * deltaTime);
                             } else {
-                                oldPosXOffset = 0f;
+                                oldPosXOffset = finalRotation;
                             }
 
                             // Get the static offset based on user's input
@@ -513,7 +529,7 @@ namespace vMenuClient {
                             // Calculate final offset taking into consideration dynamic offset (oldPosXOffset), static
                             // offset and the offset resulting from rotating the camera around the car
                             if (!linearPosOffset) {
-                                if (oldPosXOffset != 0f) {
+                                if (oldPosXOffset != finalRotation) {
                                     float rotation = oldPosXOffset + EnhancedCamera.userYaw;
                                     if (pedLock) {
                                         MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, Vector3.ForwardLH, rotation * EnhancedCamera.CamMath.DegToRad);
@@ -525,22 +541,23 @@ namespace vMenuClient {
                                             EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, 179f * EnhancedCamera.CamMath.DegToRad);
                                     }
                                 } else {
-                                    MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition;
                                     if (EnhancedCamera.userLookBehind) {
                                         MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position +
                                                                                         staticPosition -
                                                                                         (veh.RightVector * sideOffset) +
                                                                                         veh.ForwardVector * 3.5f +
                                                                                         veh.UpVector * 0.5f;
+                                    } else {
+                                        MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition;
                                     }
                                 }
                             } else {
                                 MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition + veh.RightVector * oldPosXOffset / 12f;
-                                if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 3f + veh.UpVector * 0.5f; }
+                                if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 10f + veh.UpVector * 0.5f; }
                             }
 
                             // Calculate target rotation as a heading in given range
-                            Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((finalRotation + GetEntityRotation(vehicleEntity, 2).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
+                            Vector3 newRot = GameMath.DirectionToRotation(GameMath.HeadingToDirection((oldPosXOffset + GetEntityRotation(vehicleEntity, 2).Z + 180.0f) % 360.0f - 180.0f), GetEntityRoll(vehicleEntity));
                             float roll = 0f;
                             float pitch = 0f;
                             // Clamp values
@@ -552,14 +569,13 @@ namespace vMenuClient {
                                 pitch = CameraConstraints.ClampPitch(pitch);
                             } else {
                                 // Calculate smooth roll and pitch rotation
-                                roll = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation);
-                                pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.X - EnhancedCamera.userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation);
+                                roll = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation * deltaTime);
+                                pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.X - EnhancedCamera.userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation * deltaTime);
                                 roll = CameraConstraints.ClampRoll(roll);
                                 pitch = CameraConstraints.ClampPitch(pitch);
                             }
                             // Finalize the rotation
                             float yaw = (EnhancedCamera.userLookBehind) ? (GetEntityRotation(vehicleEntity, 2).Z + 179.9f) : (newRot.Z + EnhancedCamera.userYaw);
-                            pitch *= (EnhancedCamera.userLookBehind) ? (-1f) : (1f);
                             SetCamRot(MainMenu.EnhancedCamMenu.driftCamera.Handle, pitch + EnhancedCamera.userTilt, roll, yaw, 2);
 
                             // Update minimap
@@ -942,6 +958,21 @@ namespace vMenuClient {
                 cameraRollInterpolation_ = 0.195f,
                 cameraPitchInterpolation_ = 0.5f,
                 pedLock_ = false
+            };
+            public static CameraInfo NFSCam = new CameraInfo {
+                angCamInterpolation_ = 0.02f,
+                angCamModifier_ = 0.250f,
+                posInterpolation_ = 1f,
+                chaseCamMaxAngle_ = 75f,
+                linearPosOffset_ = true,
+                lockOffsetPos_ = false,
+                customCamFOV_ = 70.0f,
+                customCamForwardOffset_ = -4.05f,
+                customCamUpOffset_ = 1.35f,
+                customCamSideOffset_ = 0.0f,
+                cameraRollInterpolation_ = 0.05f,
+                cameraPitchInterpolation_ = 1.0f,
+                pedLock_ = true
             };
         };
 
