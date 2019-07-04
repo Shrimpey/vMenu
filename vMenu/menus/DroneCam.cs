@@ -14,9 +14,48 @@ namespace vMenuClient {
 
         private Menu menu;
 
+        private Dictionary<MenuItem, KeyValuePair<string, DroneSaveInfo>> sdMenuItems = new Dictionary<MenuItem, KeyValuePair<string, DroneSaveInfo>>();
+        private Menu savedDronesMenu;
+        private Menu selectedDroneMenu = new Menu("Manage Drone", "Manage this saved drone parameters.");
+        private static KeyValuePair<string, DroneSaveInfo> currentlySelectedDrone = new KeyValuePair<string, DroneSaveInfo>();
+
         private static bool HoverMode = false;
         private MenuCheckboxItem hoverMode;
 
+        // GUI parameters
+        MenuListItem gravityMultList;
+        MenuListItem timestepMultList;
+        MenuListItem dragMultList;
+        MenuListItem accelerationMultList;
+        MenuListItem rotationMultXList;
+        MenuListItem rotationMultYList;
+        MenuListItem rotationMultZList;
+        MenuListItem tiltAngleList;
+        MenuListItem fovList;
+        MenuListItem maxVelList;
+
+        // Update params
+        private void UpdateParams() {
+            // Reset camera to update params
+            MainMenu.EnhancedCamMenu.ResetCameras();
+            if (MainMenu.EnhancedCamMenu.DroneCam) {
+                CreateDroneCamera();
+            }
+            // Update GUI params
+            gravityMultList.ListIndex = (int)((gravityMult - 0.5f) / 0.05f);
+            timestepMultList.ListIndex = (int)((timestepMult - 0.5f) / 0.05f);
+            dragMultList.ListIndex = (int)((dragMult) / 0.05f);
+            accelerationMultList.ListIndex = (int)((accelerationMult - 0.5f) / 0.05f);
+            rotationMultXList.ListIndex = (int)((rotationMult.X - 0.5f) / 0.05f);
+            rotationMultYList.ListIndex = (int)((rotationMult.Y - 0.5f) / 0.05f);
+            rotationMultZList.ListIndex = (int)((rotationMult.Z - 0.5f) / 0.05f);
+            maxVelList.ListIndex = (int)(maxVel - 10f);
+            tiltAngleList.ListIndex = (int)((tiltAngle) / 5.0f);
+            fovList.ListIndex = (int)((droneFov - 30.0f) / 5.0f);
+
+            menu.RefreshIndex();
+        }
+        
         // Constructor
         public DroneCam() {
             Tick += RunDroneCam;
@@ -35,7 +74,7 @@ namespace vMenuClient {
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 gravityMultValues.Add(i.ToString("0.000"));
             }
-            MenuListItem gravityMultList = new MenuListItem("Gravity multiplier", gravityMultValues, 10, "Modifies gravity constant, higher values makes drone fall quicker during freefall.") {
+            gravityMultList = new MenuListItem("Gravity multiplier", gravityMultValues, 10, "Modifies gravity constant, higher values makes drone fall quicker during freefall.") {
                 ShowColorPanel = false
             };
 
@@ -44,7 +83,7 @@ namespace vMenuClient {
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 timestepValues.Add(i.ToString("0.000"));
             }
-            MenuListItem timestepMultList = new MenuListItem("Timestep multiplier", timestepValues, 10, "Affects gravity and drone responsiveness.") {
+            timestepMultList = new MenuListItem("Timestep multiplier", timestepValues, 10, "Affects gravity and drone responsiveness.") {
                 ShowColorPanel = false
             };
 
@@ -53,7 +92,7 @@ namespace vMenuClient {
             for (float i = 0.0f; i <= 4.0f; i += 0.050f) {
                 dragMultValues.Add(i.ToString("0.000"));
             }
-            MenuListItem dragMultList = new MenuListItem("Drag multiplier", dragMultValues, 20, "How much air ressistance there is - higher values make drone lose velocity quicker.") {
+            dragMultList = new MenuListItem("Drag multiplier", dragMultValues, 20, "How much air ressistance there is - higher values make drone lose velocity quicker.") {
                 ShowColorPanel = false
             };
 
@@ -62,7 +101,7 @@ namespace vMenuClient {
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 accelerationMultValues.Add(i.ToString("0.000"));
             }
-            MenuListItem accelerationMultList = new MenuListItem("Acceleration multiplier", accelerationMultValues, 10, "How responsive drone is in terms of acceleration.") {
+            accelerationMultList = new MenuListItem("Acceleration multiplier", accelerationMultValues, 10, "How responsive drone is in terms of acceleration.") {
                 ShowColorPanel = false
             };
 
@@ -71,21 +110,21 @@ namespace vMenuClient {
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 rotationMultXValues.Add(i.ToString("0.000"));
             }
-            MenuListItem rotationMultXList = new MenuListItem("Pitch multiplier", rotationMultXValues, 10, "How responsive drone is in terms of rotation (pitch).") {
+            rotationMultXList = new MenuListItem("Pitch multiplier", rotationMultXValues, 10, "How responsive drone is in terms of rotation (pitch).") {
                 ShowColorPanel = false
             };
             List<string> rotationMultYValues = new List<string>();
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 rotationMultYValues.Add(i.ToString("0.000"));
             }
-            MenuListItem rotationMultYList = new MenuListItem("Roll multiplier", rotationMultYValues, 10, "How responsive drone is in terms of rotation (roll).") {
+            rotationMultYList = new MenuListItem("Roll multiplier", rotationMultYValues, 10, "How responsive drone is in terms of rotation (roll).") {
                 ShowColorPanel = false
             };
             List<string> rotationMultZValues = new List<string>();
             for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
                 rotationMultZValues.Add(i.ToString("0.000"));
             }
-            MenuListItem rotationMultZList = new MenuListItem("Yaw multiplier", rotationMultZValues, 10, "How responsive drone is in terms of rotation (yaw).") {
+            rotationMultZList = new MenuListItem("Yaw multiplier", rotationMultZValues, 10, "How responsive drone is in terms of rotation (yaw).") {
                 ShowColorPanel = false
             };
             // Tilt angle
@@ -93,7 +132,7 @@ namespace vMenuClient {
             for (float i = 0.0f; i <= 80.0f; i += 5f) {
                 tiltAngleValues.Add(i.ToString("0.0"));
             }
-            MenuListItem tiltAngleList = new MenuListItem("Tilt angle", tiltAngleValues, 9, "Defines how much is camera tilted relative to the drone.") {
+            tiltAngleList = new MenuListItem("Tilt angle", tiltAngleValues, 9, "Defines how much is camera tilted relative to the drone.") {
                 ShowColorPanel = false
             };
             // FOV
@@ -101,7 +140,7 @@ namespace vMenuClient {
             for (float i = 30.0f; i <= 120.0f; i += 5f) {
                 fovValues.Add(i.ToString("0.0"));
             }
-            MenuListItem fovList = new MenuListItem("FOV", fovValues, 10, "Field of view of the camera") {
+            fovList = new MenuListItem("FOV", fovValues, 10, "Field of view of the camera") {
                 ShowColorPanel = false
             };
             // Max velocity
@@ -109,7 +148,7 @@ namespace vMenuClient {
             for (float i = 10.0f; i <= 50.0f; i += 1f) {
                 maxVelValues.Add(i.ToString("0.0"));
             }
-            MenuListItem maxVelList = new MenuListItem("Max velocity", maxVelValues, 20, "Max velocity of the drone") {
+            maxVelList = new MenuListItem("Max velocity", maxVelValues, 20, "Max velocity of the drone") {
                 ShowColorPanel = false
             };
 
@@ -129,6 +168,81 @@ namespace vMenuClient {
             menu.AddMenuItem(rotationMultZList);
             menu.AddMenuItem(tiltAngleList);
             menu.AddMenuItem(fovList);
+
+            #endregion
+            
+            #region managing save/load camera stuff
+
+            // Saving/Loading cameras
+            MenuItem savedDronesButton = new MenuItem("Saved drones", "User created drone params");
+            savedDronesMenu = new Menu("Saved drone params");
+            MenuController.AddSubmenu(menu, savedDronesMenu);
+            menu.AddMenuItem(savedDronesButton);
+            savedDronesButton.Label = "→→→";
+            MenuController.BindMenuItem(menu, savedDronesMenu, savedDronesButton);
+
+            MenuItem saveDrone = new MenuItem("Save Current Drone", "Save the current drone parameters.");
+            savedDronesMenu.AddMenuItem(saveDrone);
+            savedDronesMenu.OnMenuOpen += (sender) => {
+                savedDronesMenu.ClearMenuItems();
+                savedDronesMenu.AddMenuItem(saveDrone);
+                LoadDroneCameras();
+            };
+
+            savedDronesMenu.OnItemSelect += (sender, item, index) => {
+                if (item == saveDrone) {
+                    SaveCamera();
+                    savedDronesMenu.GoBack();
+                } else {
+                    UpdateSelectedCameraMenu(item, sender);
+                }
+            };
+
+            MenuController.AddMenu(selectedDroneMenu);
+            MenuItem spawnCamera = new MenuItem("Spawn Drone", "Spawn this saved drone.");
+            MenuItem renameCamera = new MenuItem("Rename Drone", "Rename your saved drone.");
+            MenuItem deleteCamera = new MenuItem("~r~Delete Drone", "~r~This will delete your saved drone. Warning: this can NOT be undone!");
+            selectedDroneMenu.AddMenuItem(spawnCamera);
+            selectedDroneMenu.AddMenuItem(renameCamera);
+            selectedDroneMenu.AddMenuItem(deleteCamera);
+
+            selectedDroneMenu.OnMenuClose += (sender) => {
+                selectedDroneMenu.RefreshIndex();
+            };
+
+            selectedDroneMenu.OnItemSelect += async (sender, item, index) => {
+                if (item == spawnCamera) {
+                    MainMenu.EnhancedCamMenu.ResetCameras();
+                    SpawnSavedCamera();
+                    UpdateParams();
+                    selectedDroneMenu.GoBack();
+                    savedDronesMenu.RefreshIndex();
+
+                } else if (item == deleteCamera) {
+                    item.Label = "";
+                    DeleteResourceKvp(currentlySelectedDrone.Key);
+                    selectedDroneMenu.GoBack();
+                    savedDronesMenu.RefreshIndex();
+                    Notify.Success("Your saved drone has been deleted.");
+                } else if (item == renameCamera) {
+                    string newName = await GetUserInput(windowTitle: "Enter a new name for this drone.", maxInputLength: 30);
+                    if (string.IsNullOrEmpty(newName)) {
+                        Notify.Error(CommonErrors.InvalidInput);
+                    } else {
+                        if (SaveCameraInfo("xdm_" + newName, currentlySelectedDrone.Value, false)) {
+                            DeleteResourceKvp(currentlySelectedDrone.Key);
+                            while (!selectedDroneMenu.Visible) {
+                                await BaseScript.Delay(0);
+                            }
+                            Notify.Success("Your drone has successfully been renamed.");
+                            selectedDroneMenu.GoBack();
+                            currentlySelectedDrone = new KeyValuePair<string, DroneSaveInfo>();
+                        } else {
+                            Notify.Error("This name is already in use or something unknown failed. Contact the server owner if you believe something is wrong.");
+                        }
+                    }
+                }
+            };
 
             #endregion
 
@@ -233,21 +347,25 @@ namespace vMenuClient {
                         UpdateDronePosition();
                         UpdateDroneRotation();
                     } else {
-                        MainMenu.EnhancedCamMenu.ResetCameras();
-                        MainMenu.EnhancedCamMenu.droneCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
-                        MainMenu.EnhancedCamMenu.droneCamera.FieldOfView = droneFov;
-                        MainMenu.EnhancedCamMenu.droneCamera.IsActive = true;
-                        drone = new DroneInfo {
-                            velocity = Vector3.Zero,
-                            downVelocity = 0f,
-                            rotation = new Quaternion(0f, 0f, 0f, 1f)
-                        };
-                        Game.Player.CanControlCharacter = false;
+                        CreateDroneCamera();
                     }
                 }
             } else {
                 await Delay(0);
             }
+        }
+
+        private void CreateDroneCamera() {
+            MainMenu.EnhancedCamMenu.ResetCameras();
+            MainMenu.EnhancedCamMenu.droneCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
+            MainMenu.EnhancedCamMenu.droneCamera.FieldOfView = droneFov;
+            MainMenu.EnhancedCamMenu.droneCamera.IsActive = true;
+            drone = new DroneInfo {
+                velocity = Vector3.Zero,
+                downVelocity = 0f,
+                rotation = new Quaternion(0f, 0f, 0f, 1f)
+            };
+            Game.Player.CanControlCharacter = false;
         }
 
         // Struct containing all the necessary info for tracking drone
@@ -347,11 +465,168 @@ namespace vMenuClient {
 
             // Clamp velocity to maximum with some smoothing
             if (Math.Abs(drone.velocity.Length()) > maxVel * DRONE_MAX_VELOCITY) {
-                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.1f);
+                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.08f);
             }
 
             // Update camera position based on velocity values
             MainMenu.EnhancedCamMenu.droneCamera.Position -= drone.velocity;
+        }
+
+        #endregion
+
+        #region save/load
+
+        public struct DroneSaveInfo {
+            public float gravityMult_;
+            public float timestepMult_;
+            public float dragMult_;
+            public float accelerationMult_;
+            public Vector3 rotationMult_;
+            public float maxVel_;
+            public float tiltAngle_;
+            public float droneFov_;
+        }
+
+        private bool UpdateSelectedCameraMenu(MenuItem selectedItem, Menu parentMenu = null) {
+            if (!sdMenuItems.ContainsKey(selectedItem)) {
+                Notify.Error("In some very strange way, you've managed to select a button, that does not exist according to this list. So your vehicle could not be loaded. :( Maybe your save files are broken?");
+                return false;
+            }
+            var camInfo = sdMenuItems[selectedItem];
+            currentlySelectedDrone = camInfo;
+            selectedDroneMenu.MenuSubtitle = $"{camInfo.Key.Substring(4)}";
+            MenuController.CloseAllMenus();
+            selectedDroneMenu.OpenMenu();
+            if (parentMenu != null) {
+                MenuController.AddSubmenu(parentMenu, selectedDroneMenu);
+            }
+            return true;
+        }
+
+        private bool SpawnSavedCamera() {
+            if (currentlySelectedDrone.Key != null) {
+                gravityMult = currentlySelectedDrone.Value.gravityMult_;
+                timestepMult = currentlySelectedDrone.Value.timestepMult_;
+                dragMult = currentlySelectedDrone.Value.dragMult_;
+                accelerationMult = currentlySelectedDrone.Value.accelerationMult_;
+                rotationMult = currentlySelectedDrone.Value.rotationMult_;
+                maxVel = currentlySelectedDrone.Value.maxVel_;
+                tiltAngle = currentlySelectedDrone.Value.tiltAngle_;
+                droneFov = currentlySelectedDrone.Value.droneFov_;
+            } else {
+                Notify.Error("It seems that this slot got corrupted in some way, you need to delete it.");
+                return false;
+            }
+            return true;
+        }
+
+        private bool SaveCameraInfo(string saveName, DroneSaveInfo cameraInfo, bool overrideOldVersion) {
+            if (string.IsNullOrEmpty(GetResourceKvpString(saveName)) || overrideOldVersion) {
+                if (!string.IsNullOrEmpty(saveName) && saveName.Length > 4) {
+                    // convert
+                    string json = JsonConvert.SerializeObject(cameraInfo);
+
+                    // log
+                    Log($"[vMenu] Saving!\nName: {saveName}\nDrone Data: {json}\n");
+
+                    // save
+                    SetResourceKvp(saveName, json);
+
+                    // confirm
+                    return GetResourceKvpString(saveName) == json;
+                }
+            }
+            // if something isn't right, then the save is aborted and return false ("failed" state).
+            return false;
+        }
+
+        public async void SaveCamera(string updateExistingSavedCameraName = null) {
+            DroneSaveInfo ci = new DroneSaveInfo() {
+                gravityMult_ = gravityMult,
+                timestepMult_ = timestepMult,
+                dragMult_ = dragMult,
+                accelerationMult_ = accelerationMult,
+                rotationMult_ = rotationMult,
+                maxVel_ = maxVel,
+                tiltAngle_ = tiltAngle,
+                droneFov_ = droneFov
+            };
+
+            if (updateExistingSavedCameraName == null) {
+                var saveName = await GetUserInput(windowTitle: "Enter a save name", maxInputLength: 30);
+                // If the name is not invalid.
+                if (!string.IsNullOrEmpty(saveName)) {
+                    // Save everything from the dictionary into the client's kvp storage.
+                    // If the save was successfull:
+                    if (SaveCameraInfo("xdm_" + saveName, ci, false)) {
+                        Notify.Success($"Drone {saveName} saved.");
+                        LoadDroneCameras();
+                    }
+                    // If the save was not successfull:
+                    else {
+                        Notify.Error(CommonErrors.SaveNameAlreadyExists, placeholderValue: "(" + saveName + ")");
+                    }
+                }
+                // The user did not enter a valid name to use as a save name for this vehicle.
+                else {
+                    Notify.Error(CommonErrors.InvalidSaveName);
+                }
+            }
+            // We need to update an existing slot.
+            else {
+                SaveCameraInfo("xdm_" + updateExistingSavedCameraName, ci, true);
+            }
+        }
+
+        private Dictionary<string, DroneSaveInfo> GetSavedCameras() {
+            // Create a list to store all saved camera names in.
+            var savedCameraNames = new List<string>();
+            // Start looking for kvps starting with xcm_
+            var findHandle = StartFindKvp("xdm_");
+            // Keep looking...
+            while (true) {
+                // Get the kvp string key.
+                var camString = FindKvp(findHandle);
+
+                // If it exists then the key to the list.
+                if (camString != "" && camString != null && camString != "NULL") {
+                    savedCameraNames.Add(camString);
+                }
+                // Otherwise stop.
+                else {
+                    EndFindKvp(findHandle);
+                    break;
+                }
+            }
+            var camerasList = new Dictionary<string, DroneSaveInfo>();
+            // Loop through all save names (keys) from the list above, convert the string into a dictionary 
+            // and add it to the dictionary above, with the camera save name as the key.
+            foreach (var saveName in savedCameraNames) {
+                camerasList.Add(saveName, JsonConvert.DeserializeObject<DroneSaveInfo>(GetResourceKvpString(saveName)));
+            }
+            // Return the camera dictionary containing all camera save names (keys) linked to the correct camera
+            return camerasList;
+        }
+
+        private async void LoadDroneCameras() {
+            var savedCameras = GetSavedCameras();
+            sdMenuItems = new Dictionary<MenuItem, KeyValuePair<string, DroneSaveInfo>>();
+
+            foreach (var sc in savedCameras) {
+                MenuItem savedDroneBtn;
+                if (sc.Key.Length > 4) {
+                    savedDroneBtn = new MenuItem(sc.Key.Substring(4), $"Manage this saved drone.") {
+                        Label = $"→→→"
+                    };
+                } else {
+                    savedDroneBtn = new MenuItem("NULL", $"Manage this saved drone.") {
+                        Label = $"→→→"
+                    };
+                }
+                savedDronesMenu.AddMenuItem(savedDroneBtn);
+                sdMenuItems.Add(savedDroneBtn, sc);
+            }
+            await Delay(0);
         }
 
         #endregion
