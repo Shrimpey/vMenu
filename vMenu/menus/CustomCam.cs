@@ -554,7 +554,9 @@ namespace vMenuClient {
                                     }
                                 } else {
                                     MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition + veh.RightVector * oldPosXOffset / 12f;
-                                    if (EnhancedCamera.userLookBehind) { MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + staticPosition + veh.ForwardVector * 10f + veh.UpVector * 0.5f; }
+                                    if (EnhancedCamera.userLookBehind) {
+                                        MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, veh.UpVector, 179f * EnhancedCamera.CamMath.DegToRad);
+                                    }
                                 }
 
                                 // Calculate target rotation as a heading in given range
