@@ -12,6 +12,8 @@ using Newtonsoft.Json;
 namespace vMenuClient {
     public class DroneCam : BaseScript {
 
+        #region variables
+
         private Menu menu;
 
         private Dictionary<MenuItem, KeyValuePair<string, DroneSaveInfo>> sdMenuItems = new Dictionary<MenuItem, KeyValuePair<string, DroneSaveInfo>>();
@@ -19,8 +21,15 @@ namespace vMenuClient {
         private Menu selectedDroneMenu = new Menu("Manage Drone", "Manage this saved drone parameters.");
         private static KeyValuePair<string, DroneSaveInfo> currentlySelectedDrone = new KeyValuePair<string, DroneSaveInfo>();
 
-        private static bool HoverMode = false;
-        private MenuCheckboxItem hoverMode;
+        private static int droneMode = 0;
+        private MenuListItem modeList;
+
+        private static bool invertedPitch = false;
+        private static bool invertedRoll = false;
+
+        #endregion
+
+        #region GUI updating
 
         // GUI parameters
         MenuListItem gravityMultList;
@@ -33,6 +42,9 @@ namespace vMenuClient {
         MenuListItem tiltAngleList;
         MenuListItem fovList;
         MenuListItem maxVelList;
+
+        MenuCheckboxItem invertPitch;
+        MenuCheckboxItem invertRoll;
 
         // Update params
         private void UpdateParams() {
@@ -55,7 +67,9 @@ namespace vMenuClient {
 
             menu.RefreshIndex();
         }
-        
+
+        #endregion
+
         // Constructor
         public DroneCam() {
             Tick += RunDroneCam;
@@ -65,9 +79,14 @@ namespace vMenuClient {
             menu = new Menu(Game.Player.Name, "Drone Camera parameters");
 
             #region main parameters
+            
+            // Drone modes
+            List<string> modeListData = new List<string>() { "Race drone", "Zero-G drone" };
+            modeList = new MenuListItem("Mode", modeListData, 0, "Select drone flight mode.");
 
-            // Hover mode checkbox
-            hoverMode = new MenuCheckboxItem("Enable hover mode", "Camera behaves more like a stabilized drone for filmmaking rather than racing drone.", false);
+            // Invert input
+            invertPitch = new MenuCheckboxItem("Invert pitch", "Inverts user input in pitch axis.", false);
+            invertRoll = new MenuCheckboxItem("Invert roll", "Inverts user input in roll axis.", false);
             
             // Gravity multiplier
             List<string> gravityMultValues = new List<string>();
@@ -156,7 +175,10 @@ namespace vMenuClient {
 
             #region adding menu items
 
-            menu.AddMenuItem(hoverMode);
+            menu.AddMenuItem(modeList);
+
+            menu.AddMenuItem(invertPitch);
+            menu.AddMenuItem(invertRoll);
 
             menu.AddMenuItem(gravityMultList);
             menu.AddMenuItem(timestepMultList);
@@ -250,13 +272,21 @@ namespace vMenuClient {
 
             // Handle checkbox
             menu.OnCheckboxChange += (_menu, _item, _index, _checked) => {
-                if (_item == hoverMode) {
-                    HoverMode = _checked;
+                if (_item == invertPitch) {
+                    invertedPitch = _checked;
+                }
+                else if (_item == invertRoll)
+                {
+                    invertedRoll = _checked;
                 }
             };
 
             // Handle sliders
             menu.OnListIndexChange += (_menu, _listItem, _oldIndex, _newIndex, _itemIndex) => {
+                if(_listItem == modeList) {
+                    droneMode = _newIndex;
+                }
+
                 if (_listItem == gravityMultList) {
                     gravityMult = _newIndex * 0.05f + 0.5f;
                 }
@@ -423,6 +453,10 @@ namespace vMenuClient {
             float deltaYaw = drone.controlYaw * DRONE_AGILITY_ROT * 0.6f * rotationMult.Z * deltaTime;
             float deltaRoll = drone.controlRoll * DRONE_AGILITY_ROT * 0.75f * rotationMult.Y * deltaTime;
 
+            // Account for inverted axes
+            deltaPitch *= (invertedPitch) ? (-1f) : (1f);
+            deltaRoll *= (invertedRoll) ? (-1f) : (1f);
+
             // Rotate quaternion
             drone.rotation *= Quaternion.RotationAxis(Vector3.Up, deltaRoll * EnhancedCamera.CamMath.DegToRad);
             drone.rotation *= Quaternion.RotationAxis(Vector3.Right, deltaPitch * EnhancedCamera.CamMath.DegToRad);
@@ -450,8 +484,8 @@ namespace vMenuClient {
             // Forward and up are opposite due to naming conventions mismatch
             float deltaVelocityForward = drone.acceleration * DRONE_AGILITY_VEL * accelerationMult * 0.5f * deltaTime;          // dV = a*dt
             float deltaVelocityUp = drone.acceleration * DRONE_AGILITY_VEL * accelerationMult * (staticTilt / 2f) * deltaTime;  // dV = a*dt
-            // Enable deceleration when in hover mode and get rid of gravity force
-            if (HoverMode) {
+            // Enable deceleration when in zero-G mode and get rid of gravity force
+            if (droneMode == 1) {
                 deltaVelocityForward -= drone.deceleration * DRONE_AGILITY_VEL * accelerationMult * 0.5f * deltaTime;
                 deltaVelocityUp += drone.deceleration * DRONE_AGILITY_VEL * accelerationMult * (staticTilt / 2f) * deltaTime;
                 deltaDownForce = 0f;
