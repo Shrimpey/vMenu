@@ -573,7 +573,7 @@ namespace vMenuClient {
                                 } else {
                                     // Calculate smooth roll and pitch rotation
                                     roll = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.Y, -GetEntityRoll(vehicleEntity), cameraRollInterpolation * deltaTime);
-                                    pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.X - EnhancedCamera.userTilt, GetEntityPitch(vehicleEntity), cameraPitchInterpolation * deltaTime);
+                                    pitch = EnhancedCamera.CamMath.Lerp(MainMenu.EnhancedCamMenu.driftCamera.Rotation.X - EnhancedCamera.userTilt, GetEntityRotation(vehicleEntity, 2).X, cameraPitchInterpolation * deltaTime);
                                     roll = CameraConstraints.ClampRoll(roll);
                                     pitch = CameraConstraints.ClampPitch(pitch);
                                 }

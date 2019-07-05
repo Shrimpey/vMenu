@@ -100,7 +100,6 @@ namespace vMenuClient {
                     DroneCam = false;
 
                     if (!_checked) {
-                        //DisableMenus();
                         ResetCameras();
                     }
 
@@ -114,10 +113,8 @@ namespace vMenuClient {
                     DroneCam = false;
 
                     if (!_checked) {
-                        //DisableMenus();
                         ResetCameras();
                     } else {
-                        //EnableMenus();
                         CustomCam.target = CustomCam.GetClosestVehicle(2000, CustomCam.maxAngle);
                     }
                 }
@@ -130,7 +127,6 @@ namespace vMenuClient {
                     LeadCam = false;
 
                     if (!_checked) {
-                        //DisableMenus();
                         ResetCameras();
                     }
 

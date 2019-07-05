@@ -27,6 +27,8 @@ namespace vMenuClient {
         private static bool invertedPitch = false;
         private static bool invertedRoll = false;
 
+        private static Vehicle homingTarget = null;
+
         #endregion
 
         #region GUI updating
@@ -81,8 +83,12 @@ namespace vMenuClient {
             #region main parameters
             
             // Drone modes
-            List<string> modeListData = new List<string>() { "Race drone", "Zero-G drone", "Spectator drone" };
-            modeList = new MenuListItem("Mode", modeListData, 0, "Select drone flight mode.\nRace drone - regular, gravity based drone cam\nZero-G drone - gravity set to 0, added deceleration\nSpectator drone - easy to operate for spectating");
+            List<string> modeListData = new List<string>() { "Race drone", "Zero-G drone", "Spectator drone", "Homing drone" };
+            modeList = new MenuListItem("Mode", modeListData, 0,    "Select drone flight mode.\n" +
+                                                                    "Race drone - regular, gravity based drone cam\n" +
+                                                                    "Zero-G drone - gravity set to 0, added deceleration\n" +
+                                                                    "Spectator drone - easy to operate for spectating\n" +
+                                                                    "Homing mode - acquire target and keep it centered");
 
             // Invert input
             invertPitch = new MenuCheckboxItem("Invert pitch", "Inverts user input in pitch axis.", false);
@@ -285,6 +291,9 @@ namespace vMenuClient {
             menu.OnListIndexChange += (_menu, _listItem, _oldIndex, _newIndex, _itemIndex) => {
                 if(_listItem == modeList) {
                     droneMode = _newIndex;
+                    if(droneMode == 3) {
+                        homingTarget = GetClosestVehicleToDrone(2000);
+                    }
                 }
 
                 if (_listItem == gravityMultList) {
@@ -338,10 +347,10 @@ namespace vMenuClient {
             }
             return menu;
         }
-
-        #region drone camera
-
+        
         private DroneInfo drone;
+
+        #region params
 
         // Parameters for user to tune
         private static float gravityMult = 1.0f;
@@ -361,6 +370,10 @@ namespace vMenuClient {
         private const float DRONE_AGILITY_VEL = 210f; // How quick is velocity and acceleration response
         private const float DRONE_MAX_VELOCITY = 0.01f; // Max velocity of the drone
 
+        #endregion
+
+        #region main functions
+
         /// <summary>
         /// Changes main render camera behaviour, creates a free camera controlled
         /// like a drone.
@@ -377,6 +390,9 @@ namespace vMenuClient {
                         if (droneMode == 2) {   // Spectate mode
                             UpdateDronePositionSpectate();
                             UpdateDroneRotationSpectate();
+                        } else if (droneMode == 3) {    // Homing mode
+                            UpdateDronePositionSpectate();
+                            UpdateDroneRotationHoming();
                         } else {
                             UpdateDronePosition();
                             UpdateDroneRotation();
@@ -432,7 +448,7 @@ namespace vMenuClient {
                             MainMenu.EnhancedCamMenu.droneCamera.Position.ToString()
                             );
         }
-
+        
         // Get user input for drone camera
         private void UpdateDroneControls() {
             drone.acceleration = ((GetDisabledControlNormal(0, 71)) / 2f);
@@ -448,6 +464,10 @@ namespace vMenuClient {
                 drone.controlRoll *= 4.5f;
             }
         }
+
+        #endregion
+
+        #region race mode
 
         // Update drone's rotation based on input
         private void UpdateDroneRotation() {
@@ -511,6 +531,8 @@ namespace vMenuClient {
             MainMenu.EnhancedCamMenu.droneCamera.Position -= drone.velocity;
         }
 
+        #endregion
+
         #region spectator mode
 
         // Special update functions for spectator mode drone
@@ -536,8 +558,8 @@ namespace vMenuClient {
         private void UpdateDronePositionSpectate() {
             float deltaTime = timestepMult * Timestep() / TIMESTEP_DELIMITER;
 
-            float deltaForward = -((GetDisabledControlNormal(1, 31)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
-            float deltaSide = ((GetDisabledControlNormal(1, 30)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
+            float deltaForward = -((GetDisabledControlNormal(1, 31)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult / 2f;
+            float deltaSide = ((GetDisabledControlNormal(1, 30)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult / 2f;
             float deltaUp = ((GetDisabledControlNormal(1, 92)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
             float deltaDown = ((GetDisabledControlNormal(1, 91)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
 
@@ -568,8 +590,41 @@ namespace vMenuClient {
 
         #endregion
 
-        #endregion
+        #region homing mode
 
+        /// <summary>
+        /// Gets closest vehicle to Camera
+        /// </summary>
+        /// <returns>closest vehicle</returns>
+        private Vehicle GetClosestVehicleToDrone(int maxDistance) {
+            float smallestDistance = (float)maxDistance;
+            Vehicle[] vehs = World.GetAllVehicles();
+            Vehicle closestVeh = null;
+
+            if (vehs != null) {
+                foreach (Vehicle veh in vehs) {
+                    float distance = Vector3.Distance(GetEntityCoords(veh.Handle, true), MainMenu.EnhancedCamMenu.droneCamera.Position);
+                    if ((distance <= smallestDistance) && (veh != null)) {
+                        smallestDistance = distance;
+                        closestVeh = veh;
+                    }
+                }
+            }
+            return closestVeh;
+        }
+
+        private void UpdateDroneRotationHoming() {
+            float deltaTime = timestepMult * Timestep() / TIMESTEP_DELIMITER;
+
+            if (homingTarget != null) {
+                Vector3 targetDir = homingTarget.Position - MainMenu.EnhancedCamMenu.droneCamera.Position;
+
+                MainMenu.EnhancedCamMenu.droneCamera.Direction = targetDir;
+            }
+        }
+        
+        #endregion
+        
         #region save/load
 
         public struct DroneSaveInfo {
