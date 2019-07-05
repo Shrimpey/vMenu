@@ -81,8 +81,8 @@ namespace vMenuClient {
             #region main parameters
             
             // Drone modes
-            List<string> modeListData = new List<string>() { "Race drone", "Zero-G drone" };
-            modeList = new MenuListItem("Mode", modeListData, 0, "Select drone flight mode.");
+            List<string> modeListData = new List<string>() { "Race drone", "Zero-G drone", "Spectator drone" };
+            modeList = new MenuListItem("Mode", modeListData, 0, "Select drone flight mode.\nRace drone - regular, gravity based drone cam\nZero-G drone - gravity set to 0, added deceleration\nSpectator drone - easy to operate for spectating");
 
             // Invert input
             invertPitch = new MenuCheckboxItem("Invert pitch", "Inverts user input in pitch axis.", false);
@@ -374,8 +374,13 @@ namespace vMenuClient {
                         UpdateDroneControls();
 
                         // Update camera properties
-                        UpdateDronePosition();
-                        UpdateDroneRotation();
+                        if (droneMode == 2) {   // Spectate mode
+                            UpdateDronePositionSpectate();
+                            UpdateDroneRotationSpectate();
+                        } else {
+                            UpdateDronePosition();
+                            UpdateDroneRotation();
+                        }
                     } else {
                         CreateDroneCamera();
                     }
@@ -505,6 +510,63 @@ namespace vMenuClient {
             // Update camera position based on velocity values
             MainMenu.EnhancedCamMenu.droneCamera.Position -= drone.velocity;
         }
+
+        #region spectator mode
+
+        // Special update functions for spectator mode drone
+        private void UpdateDroneRotationSpectate() {
+            float deltaTime = timestepMult * Timestep() / TIMESTEP_DELIMITER;
+
+            // Calculate delta of rotation based on user input
+            float deltaPitch = -drone.controlPitch * DRONE_AGILITY_ROT * 0.70f * rotationMult.X * deltaTime;
+            float deltaYaw = -drone.controlRoll * DRONE_AGILITY_ROT * 0.6f * rotationMult.Z * deltaTime;
+
+            // Account for inverted axes
+            deltaPitch *= (invertedPitch) ? (-1f) : (1f);
+
+            // Update camera rotation based on values
+            SetCamRot(MainMenu.EnhancedCamMenu.droneCamera.Handle,
+                Math.Abs(MainMenu.EnhancedCamMenu.droneCamera.Rotation.X + deltaPitch)<89f ? (MainMenu.EnhancedCamMenu.droneCamera.Rotation.X + deltaPitch)
+                                                                                           : (Math.Sign(MainMenu.EnhancedCamMenu.droneCamera.Rotation.X) * 88.9f),
+                MainMenu.EnhancedCamMenu.droneCamera.Rotation.Y,
+                MainMenu.EnhancedCamMenu.droneCamera.Rotation.Z + deltaYaw,
+                2);
+        }
+
+        private void UpdateDronePositionSpectate() {
+            float deltaTime = timestepMult * Timestep() / TIMESTEP_DELIMITER;
+
+            float deltaForward = -((GetDisabledControlNormal(1, 31)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
+            float deltaSide = ((GetDisabledControlNormal(1, 30)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
+            float deltaUp = ((GetDisabledControlNormal(1, 92)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
+            float deltaDown = ((GetDisabledControlNormal(1, 91)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
+
+            Vector3 dir = EnhancedCamera.CamMath.RotateAroundAxis(MainMenu.EnhancedCamMenu.droneCamera.Direction, MainMenu.EnhancedCamMenu.droneCamera.RightVector, 90f * EnhancedCamera.CamMath.DegToRad);
+
+            drone.velocity -= Vector3.Normalize(new Vector3(dir.X,
+                                          dir.Y,
+                                          0f)) * deltaForward;
+            drone.velocity += EnhancedCamera.CamMath.RotateAroundAxis(
+                                Vector3.Normalize(new Vector3(  dir.X,
+                                                                dir.Y,
+                                                                0f)),
+                                    Vector3.ForwardLH,
+                                    90f * EnhancedCamera.CamMath.DegToRad
+                                ) * deltaSide;
+
+            drone.velocity -= Vector3.ForwardLH * deltaUp;
+            drone.velocity += Vector3.ForwardLH * deltaDown;
+
+            // Clamp velocity to maximum with some smoothing
+            if (Math.Abs(drone.velocity.Length()) > maxVel * DRONE_MAX_VELOCITY) {
+                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.08f);
+            }
+
+            // Update camera position based on velocity values
+            MainMenu.EnhancedCamMenu.droneCamera.Position -= drone.velocity;
+        }
+
+        #endregion
 
         #endregion
 
