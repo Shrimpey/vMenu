@@ -550,7 +550,7 @@ namespace vMenuClient {
             SetCamRot(MainMenu.EnhancedCamMenu.droneCamera.Handle,
                 Math.Abs(MainMenu.EnhancedCamMenu.droneCamera.Rotation.X + deltaPitch)<89f ? (MainMenu.EnhancedCamMenu.droneCamera.Rotation.X + deltaPitch)
                                                                                            : (Math.Sign(MainMenu.EnhancedCamMenu.droneCamera.Rotation.X) * 88.9f),
-                MainMenu.EnhancedCamMenu.droneCamera.Rotation.Y,
+                0f,
                 MainMenu.EnhancedCamMenu.droneCamera.Rotation.Z + deltaYaw,
                 2);
         }
