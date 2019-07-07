@@ -75,6 +75,7 @@ namespace vMenuClient {
         // Constructor
         public DroneCam() {
             Tick += RunDroneCam;
+            Tick += AntiAfk;
         }
 
         private void CreateMenu() {
@@ -400,6 +401,22 @@ namespace vMenuClient {
                     } else {
                         CreateDroneCamera();
                     }
+                }
+            } else {
+                await Delay(0);
+            }
+        }
+
+        /// <summary>
+        /// Move player a bit every 250 seconds to avoid AFK kick
+        /// when using drone.
+        /// </summary>
+        /// <returns></returns>
+        private async Task AntiAfk() {
+            if (MainMenu.EnhancedCamMenu != null) {
+                if (MainMenu.EnhancedCamMenu.DroneCam) {
+                    SimulatePlayerInputGait(Game.Player.Handle, 1.0f, 100, 0.2f, true, false);
+                    await Delay(250000);
                 }
             } else {
                 await Delay(0);
