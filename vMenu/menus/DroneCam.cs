@@ -85,10 +85,10 @@ namespace vMenuClient {
             // Drone modes
             List<string> modeListData = new List<string>() { "Race drone", "Zero-G drone", "Spectator drone", "Homing drone" };
             modeList = new MenuListItem("Mode", modeListData, 0,    "Select drone flight mode.\n" +
-                                                                    "Race drone - regular, gravity based drone cam\n" +
-                                                                    "Zero-G drone - gravity set to 0, added deceleration\n" +
-                                                                    "Spectator drone - easy to operate for spectating\n" +
-                                                                    "Homing mode - acquire target and keep it centered");
+                                                                    "~y~Race drone~s~ - regular, gravity based drone cam\n" +
+                                                                    "~y~Zero-G drone~s~ - gravity set to 0, added deceleration\n" +
+                                                                    "~y~Spectator drone~s~ - easy to operate for spectating\n" +
+                                                                    "~y~Homing drone~s~ - acquire target and keep it in center");
 
             // Invert input
             invertPitch = new MenuCheckboxItem("Invert pitch", "Inverts user input in pitch axis.", false);
@@ -96,8 +96,8 @@ namespace vMenuClient {
             
             // Gravity multiplier
             List<string> gravityMultValues = new List<string>();
-            for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
-                gravityMultValues.Add(i.ToString("0.000"));
+            for (float i = 0.5f; i <= 4.0f; i += 0.05f) {
+                gravityMultValues.Add(i.ToString("0.00"));
             }
             gravityMultList = new MenuListItem("Gravity multiplier", gravityMultValues, 10, "Modifies gravity constant, higher values makes drone fall quicker during freefall.") {
                 ShowColorPanel = false
@@ -105,8 +105,8 @@ namespace vMenuClient {
 
             // Timestep multiplier
             List<string> timestepValues = new List<string>();
-            for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
-                timestepValues.Add(i.ToString("0.000"));
+            for (float i = 0.5f; i <= 4.0f; i += 0.05f) {
+                timestepValues.Add(i.ToString("0.00"));
             }
             timestepMultList = new MenuListItem("Timestep multiplier", timestepValues, 10, "Affects gravity and drone responsiveness.") {
                 ShowColorPanel = false
@@ -114,8 +114,8 @@ namespace vMenuClient {
 
             // Drag multiplier
             List<string> dragMultValues = new List<string>();
-            for (float i = 0.0f; i <= 4.0f; i += 0.050f) {
-                dragMultValues.Add(i.ToString("0.000"));
+            for (float i = 0.0f; i <= 4.0f; i += 0.05f) {
+                dragMultValues.Add(i.ToString("0.00"));
             }
             dragMultList = new MenuListItem("Drag multiplier", dragMultValues, 20, "How much air ressistance there is - higher values make drone lose velocity quicker.") {
                 ShowColorPanel = false
@@ -123,8 +123,8 @@ namespace vMenuClient {
 
             // Acceleration multiplier
             List<string> accelerationMultValues = new List<string>();
-            for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
-                accelerationMultValues.Add(i.ToString("0.000"));
+            for (float i = 0.5f; i <= 4.0f; i += 0.05f) {
+                accelerationMultValues.Add(i.ToString("0.00"));
             }
             accelerationMultList = new MenuListItem("Acceleration multiplier", accelerationMultValues, 10, "How responsive drone is in terms of acceleration.") {
                 ShowColorPanel = false
@@ -132,22 +132,22 @@ namespace vMenuClient {
 
             // Rotation multipliers
             List<string> rotationMultXValues = new List<string>();
-            for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
-                rotationMultXValues.Add(i.ToString("0.000"));
+            for (float i = 0.5f; i <= 4.0f; i += 0.05f) {
+                rotationMultXValues.Add(i.ToString("0.00"));
             }
             rotationMultXList = new MenuListItem("Pitch multiplier", rotationMultXValues, 10, "How responsive drone is in terms of rotation (pitch).") {
                 ShowColorPanel = false
             };
             List<string> rotationMultYValues = new List<string>();
-            for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
-                rotationMultYValues.Add(i.ToString("0.000"));
+            for (float i = 0.5f; i <= 4.0f; i += 0.05f) {
+                rotationMultYValues.Add(i.ToString("0.00"));
             }
             rotationMultYList = new MenuListItem("Roll multiplier", rotationMultYValues, 10, "How responsive drone is in terms of rotation (roll).") {
                 ShowColorPanel = false
             };
             List<string> rotationMultZValues = new List<string>();
-            for (float i = 0.5f; i <= 4.0f; i += 0.050f) {
-                rotationMultZValues.Add(i.ToString("0.000"));
+            for (float i = 0.5f; i <= 4.0f; i += 0.05f) {
+                rotationMultZValues.Add(i.ToString("0.00"));
             }
             rotationMultZList = new MenuListItem("Yaw multiplier", rotationMultZValues, 10, "How responsive drone is in terms of rotation (yaw).") {
                 ShowColorPanel = false
@@ -516,15 +516,18 @@ namespace vMenuClient {
                 deltaDownForce = 0f;
             }
 
-            drone.velocity += MainMenu.EnhancedCamMenu.droneCamera.ForwardVector * deltaVelocityForward;    // V1 = V0 + dV
-            drone.velocity -= MainMenu.EnhancedCamMenu.droneCamera.UpVector * deltaVelocityUp;              // V1 = V0 + dV
+            // Additional 2x boost on spacebar/R1
+            float boost = (GetDisabledControlNormal(1, 102) + 1f);
+
+            drone.velocity += MainMenu.EnhancedCamMenu.droneCamera.ForwardVector * deltaVelocityForward * boost;    // V1 = V0 + dV
+            drone.velocity -= MainMenu.EnhancedCamMenu.droneCamera.UpVector * deltaVelocityUp * boost;              // V1 = V0 + dV
             // Account for air resistance
             drone.velocity -= drone.velocity * DRONE_DRAG * dragMult;
             drone.velocity += Vector3.ForwardLH * deltaDownForce * deltaTime;
 
             // Clamp velocity to maximum with some smoothing
-            if (Math.Abs(drone.velocity.Length()) > maxVel * DRONE_MAX_VELOCITY) {
-                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.08f);
+            if (Math.Abs(drone.velocity.Length()) > boost * maxVel * DRONE_MAX_VELOCITY) {
+                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * boost * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.08f);
             }
 
             // Update camera position based on velocity values
@@ -562,26 +565,33 @@ namespace vMenuClient {
             float deltaSide = ((GetDisabledControlNormal(1, 30)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult / 2f;
             float deltaUp = ((GetDisabledControlNormal(1, 92)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
             float deltaDown = ((GetDisabledControlNormal(1, 91)) / 2f) * deltaTime * DRONE_AGILITY_VEL * accelerationMult;
+            
+            // Additional 2x boost on spacebar/R1
+            float boost = (GetDisabledControlNormal(1, 102) + 1f);
 
             Vector3 dir = EnhancedCamera.CamMath.RotateAroundAxis(MainMenu.EnhancedCamMenu.droneCamera.Direction, MainMenu.EnhancedCamMenu.droneCamera.RightVector, 90f * EnhancedCamera.CamMath.DegToRad);
 
             drone.velocity -= Vector3.Normalize(new Vector3(dir.X,
                                           dir.Y,
-                                          0f)) * deltaForward;
+                                          0f)) * deltaForward * boost;
             drone.velocity += EnhancedCamera.CamMath.RotateAroundAxis(
                                 Vector3.Normalize(new Vector3(  dir.X,
                                                                 dir.Y,
                                                                 0f)),
                                     Vector3.ForwardLH,
                                     90f * EnhancedCamera.CamMath.DegToRad
-                                ) * deltaSide;
+                                ) * deltaSide * boost;
+            
+
+            // Account for air ressistance
+            drone.velocity -= drone.velocity * DRONE_DRAG * dragMult;
 
             drone.velocity -= Vector3.ForwardLH * deltaUp;
             drone.velocity += Vector3.ForwardLH * deltaDown;
 
             // Clamp velocity to maximum with some smoothing
-            if (Math.Abs(drone.velocity.Length()) > maxVel * DRONE_MAX_VELOCITY) {
-                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.08f);
+            if (Math.Abs(drone.velocity.Length()) > maxVel * boost * DRONE_MAX_VELOCITY) {
+                drone.velocity = Vector3.Lerp(drone.velocity, drone.velocity * boost * maxVel * DRONE_MAX_VELOCITY / drone.velocity.Length(), 0.08f);
             }
 
             // Update camera position based on velocity values
