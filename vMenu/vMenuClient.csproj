@@ -66,6 +66,7 @@
     <Compile Include="menus\CustomCam.cs" />
     <Compile Include="menus\DroneCam.cs" />
     <Compile Include="menus\MiscSettings.cs" />
+    <Compile Include="menus\RGBColors.cs" />
     <Compile Include="menus\MpPedCustomization.cs" />
     <Compile Include="menus\OnlinePlayers.cs" />
     <Compile Include="menus\PersonalVehicle.cs" />

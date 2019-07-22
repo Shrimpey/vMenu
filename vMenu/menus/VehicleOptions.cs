@@ -29,6 +29,9 @@ namespace vMenuClient
         public Menu DeleteConfirmMenu { get; private set; }
         public Menu VehicleUnderglowMenu { get; private set; }
 
+        public Menu RGBColorsMenu { get; private set; }
+        public RGBColors RgbColors { get; private set; }
+
         // Public variables (getters only), return the private variables.
         public bool VehicleGodMode { get; private set; } = UserDefaults.VehicleGodMode;
         public bool VehicleGodInvincible { get; private set; } = UserDefaults.VehicleGodInvincible;
@@ -295,6 +298,22 @@ namespace vMenuClient
             {
                 menu.AddMenuItem(colorsMenuBtn);
             }
+
+            #region advanced colors menu
+
+            RgbColors = new RGBColors();
+            RGBColorsMenu = RgbColors.GetMenu();
+            MenuItem buttonRGB = new MenuItem("RGB Colors", "Advanced car color options")
+            {
+                Label = "→→→"
+            };
+            menu.AddMenuItem(buttonRGB);
+            MenuController.AddSubmenu(menu, RGBColorsMenu);
+            MenuController.BindMenuItem(menu, RGBColorsMenu, buttonRGB);
+            RGBColorsMenu.RefreshIndex();
+
+            #endregion
+
             if (IsAllowed(Permission.VOUnderglow)) // UNDERGLOW EFFECTS
             {
                 menu.AddMenuItem(underglowMenuBtn);
@@ -902,6 +921,7 @@ namespace vMenuClient
             #endregion
 
             #region Vehicle Colors Submenu Stuff
+
             // primary menu
             Menu primaryColorsMenu = new Menu("Vehicle Colors", "Primary Colors");
             MenuController.AddSubmenu(VehicleColorsMenu, primaryColorsMenu);
@@ -998,6 +1018,17 @@ namespace vMenuClient
             void HandleListIndexChanges(Menu sender, MenuListItem listItem, int oldIndex, int newIndex, int itemIndex)
             {
                 Vehicle veh = GetVehicle();
+
+                // Abandon advanced RGB colors when using default ones
+                if (RGBColors.shouldSave)
+                {
+                    RGBColors.shouldSave = false;
+                    RGBColors.currentRGB.ResetRGB();
+                    ClearVehicleCustomPrimaryColour(veh.Handle);
+                    ClearVehicleCustomSecondaryColour(veh.Handle);
+                    RgbColors.ResetGUI();
+                }
+
                 if (veh != null && veh.Exists() && !veh.IsDead && veh.Driver == Game.PlayerPed)
                 {
                     int primaryColor = 0;

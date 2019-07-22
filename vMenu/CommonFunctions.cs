@@ -1247,6 +1247,45 @@ namespace vMenuClient
                 SetVehicleLivery(vehicle.Handle, vehicleInfo.livery);
 
                 SetVehicleColours(vehicle.Handle, vehicleInfo.colors["primary"], vehicleInfo.colors["secondary"]);
+
+                // Setting RGB colors if they were saved
+                if (vehicleInfo.advancedColors != null)
+                {
+                    RGBColors.shouldSave = true;
+
+                    if (vehicleInfo.advancedColors.ContainsKey("primaryR"))
+                    {
+                        RGBColors.currentRGB.SetPrimaryR(vehicleInfo.advancedColors["primaryR"]);
+                        RGBColors.currentRGB.SetPrimaryG(vehicleInfo.advancedColors["primaryG"]);
+                        RGBColors.currentRGB.SetPrimaryB(vehicleInfo.advancedColors["primaryB"]);
+                    }
+
+                    if (vehicleInfo.advancedColors.ContainsKey("secondaryR"))
+                    {
+                        RGBColors.currentRGB.SetSecondaryR(vehicleInfo.advancedColors["secondaryR"]);
+                        RGBColors.currentRGB.SetSecondaryG(vehicleInfo.advancedColors["secondaryG"]);
+                        RGBColors.currentRGB.SetSecondaryB(vehicleInfo.advancedColors["secondaryB"]);
+                    }
+
+                    if (vehicleInfo.advancedColors.ContainsKey("neonR"))
+                    {
+                        RGBColors.currentRGB.SetNeonR(vehicleInfo.advancedColors["neonR"]);
+                        RGBColors.currentRGB.SetNeonG(vehicleInfo.advancedColors["neonG"]);
+                        RGBColors.currentRGB.SetNeonB(vehicleInfo.advancedColors["neonB"]);
+                    }
+
+                    MainMenu.VehicleOptionsMenu.RgbColors.RefreshGUI();
+
+                    SetVehicleCustomPrimaryColour(vehicle.Handle, RGBColors.currentRGB.GetPrimary()[0], RGBColors.currentRGB.GetPrimary()[1], RGBColors.currentRGB.GetPrimary()[2]);
+                    SetVehicleCustomSecondaryColour(vehicle.Handle, RGBColors.currentRGB.GetSecondary()[0], RGBColors.currentRGB.GetSecondary()[1], RGBColors.currentRGB.GetSecondary()[2]);
+                    SetVehicleNeonLightsColour(vehicle.Handle, RGBColors.currentRGB.GetNeon()[0], RGBColors.currentRGB.GetNeon()[1], RGBColors.currentRGB.GetNeon()[2]);
+                }
+                else
+                {
+                    // Do not save with custom colors if spawned without them
+                    RGBColors.shouldSave = false;
+                }
+
                 SetVehicleInteriorColour(vehicle.Handle, vehicleInfo.colors["trim"]);
                 SetVehicleDashboardColour(vehicle.Handle, vehicleInfo.colors["dash"]);
 
@@ -1315,6 +1354,8 @@ namespace vMenuClient
             public bool xenonHeadlights;
             public bool bulletProofTires;
             public int headlightColor;
+
+            public Dictionary<string, int> advancedColors;
         };
         #endregion
 
@@ -1375,6 +1416,49 @@ namespace vMenuClient
                     colors.Add("tyresmokeR", tyresmokeR);
                     colors.Add("tyresmokeG", tyresmokeG);
                     colors.Add("tyresmokeB", tyresmokeB);
+
+                    #region advanced RGB colors
+
+                    var advancedColors = new Dictionary<string, int>();
+
+                    int primaryColorR = 0;
+                    int primaryColorG = 0;
+                    int primaryColorB = 0;
+
+                    int secondaryColorR = 0;
+                    int secondaryColorG = 0;
+                    int secondaryColorB = 0;
+
+                    int neonColorR = 0;
+                    int neonColorG = 0;
+                    int neonColorB = 0;
+
+                    primaryColorR = RGBColors.currentRGB.GetPrimary()[0];
+                    primaryColorG = RGBColors.currentRGB.GetPrimary()[1];
+                    primaryColorB = RGBColors.currentRGB.GetPrimary()[2];
+
+                    secondaryColorR = RGBColors.currentRGB.GetSecondary()[0];
+                    secondaryColorG = RGBColors.currentRGB.GetSecondary()[1];
+                    secondaryColorB = RGBColors.currentRGB.GetSecondary()[2];
+
+                    neonColorR = RGBColors.currentRGB.GetNeon()[0];
+                    neonColorG = RGBColors.currentRGB.GetNeon()[1];
+                    neonColorB = RGBColors.currentRGB.GetNeon()[2];
+
+                    advancedColors.Add("primaryR", primaryColorR);
+                    advancedColors.Add("primaryG", primaryColorG);
+                    advancedColors.Add("primaryB", primaryColorB);
+
+                    advancedColors.Add("secondaryR", secondaryColorR);
+                    advancedColors.Add("secondaryG", secondaryColorG);
+                    advancedColors.Add("secondaryB", secondaryColorB);
+
+                    advancedColors.Add("neonR", neonColorR);
+                    advancedColors.Add("neonG", neonColorG);
+                    advancedColors.Add("neonB", neonColorB);
+
+                    #endregion
+
                     #endregion
 
                     var extras = new Dictionary<int, bool>();
@@ -1408,7 +1492,9 @@ namespace vMenuClient
                         windowTint = (int)veh.Mods.WindowTint,
                         xenonHeadlights = IsToggleModOn(veh.Handle, 22),
                         bulletProofTires = !veh.CanTiresBurst,
-                        headlightColor = VehicleOptions._GET_VEHICLE_HEADLIGHTS_COLOR(veh)
+                        headlightColor = VehicleOptions._GET_VEHICLE_HEADLIGHTS_COLOR(veh),
+
+                        advancedColors = (RGBColors.shouldSave) ? (advancedColors) : (null)
                     };
 
                     #endregion
