@@ -18,6 +18,11 @@ namespace vMenuClient
 
         private Menu menu;
 
+        private const int MIN_VAL = 0;
+        private const int MAX_VAL = 255;
+        private const int STEP = 5;
+        private const int MAX_SLIDER_VAL = MAX_VAL / STEP;
+
         private const string P_R_ID = "RGBcols_p_r";
         private const string P_G_ID = "RGBcols_p_g";
         private const string P_B_ID = "RGBcols_p_b";
@@ -29,57 +34,57 @@ namespace vMenuClient
         private const string N_B_ID = "RGBcols_n_b";
 
         public static CarRGBColors currentRGB = new CarRGBColors();
-        MenuSliderItem primaryRedList = new MenuSliderItem("Primary R", "Red channel of car primary RGB color", 0, 64, 64, false)
+        MenuSliderItem primaryRedList = new MenuSliderItem("Primary R", "Red channel of car primary RGB color", MIN_VAL, MAX_SLIDER_VAL, MAX_SLIDER_VAL, false)
         {
             BarColor = System.Drawing.Color.FromArgb(200, 255, 0, 0),
             BackgroundColor = System.Drawing.Color.FromArgb(200, 75, 25, 25),
             ItemData = P_R_ID
         };
-        MenuSliderItem primaryGreenList = new MenuSliderItem("Primary G", "Green channel of car primary RGB color", 0, 64, 64, false)
+        MenuSliderItem primaryGreenList = new MenuSliderItem("Primary G", "Green channel of car primary RGB color", MIN_VAL, MAX_SLIDER_VAL, MAX_SLIDER_VAL, false)
         {
             BarColor = System.Drawing.Color.FromArgb(200, 0, 255, 0),
             BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 75, 25),
             ItemData = P_G_ID
         };
-        MenuSliderItem primaryBlueList = new MenuSliderItem("Primary B", "Blue channel of car primary RGB color", 0, 64, 64, false)
+        MenuSliderItem primaryBlueList = new MenuSliderItem("Primary B", "Blue channel of car primary RGB color", MIN_VAL, MAX_SLIDER_VAL, MAX_SLIDER_VAL, false)
         {
             BarColor = System.Drawing.Color.FromArgb(200, 0, 0, 255),
             BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 25, 75),
             ItemData = P_B_ID
         };
 
-        MenuSliderItem secondaryRedList = new MenuSliderItem("Secondary R", "Red channel of car secondary RGB color", 0, 64, 64, false)
+        MenuSliderItem secondaryRedList = new MenuSliderItem("Secondary R", "Red channel of car secondary RGB color", MIN_VAL, MAX_SLIDER_VAL, MAX_SLIDER_VAL, false)
         {
             BarColor = System.Drawing.Color.FromArgb(200, 255, 0, 0),
             BackgroundColor = System.Drawing.Color.FromArgb(200, 75, 25, 25),
             ItemData = S_R_ID
         };
-        MenuSliderItem secondaryGreenList = new MenuSliderItem("Secondary G", "Green channel of car secondary RGB color", 0, 64, 64, false)
+        MenuSliderItem secondaryGreenList = new MenuSliderItem("Secondary G", "Green channel of car secondary RGB color", MIN_VAL, MAX_SLIDER_VAL, MAX_SLIDER_VAL, false)
         {
             BarColor = System.Drawing.Color.FromArgb(200, 0, 255, 0),
             BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 75, 25),
             ItemData = S_G_ID
         };
-        MenuSliderItem secondaryBlueList = new MenuSliderItem("Secondary B", "Blue channel of car secondary RGB color", 0, 64, 64, false)
+        MenuSliderItem secondaryBlueList = new MenuSliderItem("Secondary B", "Blue channel of car secondary RGB color", MIN_VAL, MAX_SLIDER_VAL, MAX_SLIDER_VAL, false)
         {
             BarColor = System.Drawing.Color.FromArgb(200, 0, 0, 255),
             BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 25, 75),
             ItemData = S_B_ID
         };
 
-        MenuSliderItem neonRedList = new MenuSliderItem("Neon R", "Red channel of car neon RGB color", 0, 64, 64, false)
+        MenuSliderItem neonRedList = new MenuSliderItem("Neon R", "Red channel of car neon RGB color", MIN_VAL, MAX_SLIDER_VAL, MAX_SLIDER_VAL, false)
         {
             BarColor = System.Drawing.Color.FromArgb(200, 255, 0, 0),
             BackgroundColor = System.Drawing.Color.FromArgb(200, 75, 25, 25),
             ItemData = N_R_ID
         };
-        MenuSliderItem neonGreenList = new MenuSliderItem("Neon G", "Green channel of car neon RGB color", 0, 64, 64, false)
+        MenuSliderItem neonGreenList = new MenuSliderItem("Neon G", "Green channel of car neon RGB color", MIN_VAL, MAX_SLIDER_VAL, MAX_SLIDER_VAL, false)
         {
             BarColor = System.Drawing.Color.FromArgb(200, 0, 255, 0),
             BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 75, 25),
             ItemData = N_G_ID
         };
-        MenuSliderItem neonBlueList = new MenuSliderItem("Neon B", "Blue channel of car neon RGB color", 0, 64, 64, false)
+        MenuSliderItem neonBlueList = new MenuSliderItem("Neon B", "Blue channel of car neon RGB color", MIN_VAL, MAX_SLIDER_VAL, MAX_SLIDER_VAL, false)
         {
             BarColor = System.Drawing.Color.FromArgb(200, 0, 0, 255),
             BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 25, 75),
@@ -112,9 +117,9 @@ namespace vMenuClient
 
             public void ResetRGB()
             {
-                primary = new int[3] { 255, 255, 255 };
-                secondary = new int[3] { 255, 255, 255 };
-                neon = new int[3] { 255, 255, 255 };
+                primary = new int[3] { MAX_VAL, MAX_VAL, MAX_VAL };
+                secondary = new int[3] { MAX_VAL, MAX_VAL, MAX_VAL };
+                neon = new int[3] { MAX_VAL, MAX_VAL, MAX_VAL };
             }
         }
 
@@ -122,34 +127,50 @@ namespace vMenuClient
 
         public void ResetGUI()
         {
-            if (primaryRedList != null) { primaryRedList.Position = 64; }
-            if (primaryGreenList != null) { primaryGreenList.Position = 64; }
-            if (primaryBlueList != null) { primaryBlueList.Position = 64; }
+            if (primaryRedList != null) { primaryRedList.Position = MAX_SLIDER_VAL; }
+            if (primaryGreenList != null) { primaryGreenList.Position = MAX_SLIDER_VAL; }
+            if (primaryBlueList != null) { primaryBlueList.Position = MAX_SLIDER_VAL; }
 
-            if (secondaryRedList != null) { secondaryRedList.Position = 64; }
-            if (secondaryGreenList != null) { secondaryGreenList.Position = 64; }
-            if (secondaryBlueList != null) { secondaryBlueList.Position = 64; }
+            if (secondaryRedList != null) { secondaryRedList.Position = MAX_SLIDER_VAL; }
+            if (secondaryGreenList != null) { secondaryGreenList.Position = MAX_SLIDER_VAL; }
+            if (secondaryBlueList != null) { secondaryBlueList.Position = MAX_SLIDER_VAL; }
 
-            if (neonRedList != null) { neonRedList.Position = 64; }
-            if (neonGreenList != null) { neonGreenList.Position = 64; }
-            if (neonBlueList != null) { neonBlueList.Position = 64; }
+            if (neonRedList != null) { neonRedList.Position = MAX_SLIDER_VAL; }
+            if (neonGreenList != null) { neonGreenList.Position = MAX_SLIDER_VAL; }
+            if (neonBlueList != null) { neonBlueList.Position = MAX_SLIDER_VAL; }
 
             menu.RefreshIndex();
         }
 
         public void RefreshGUI()
         {
-            if (primaryRedList != null) { primaryRedList.Position = (int)Math.Ceiling(((double)currentRGB.GetPrimary()[0]) / 4); primaryRedList.Text = "Primary R\t\t" + currentRGB.GetPrimary()[0].ToString(); }
-            if (primaryGreenList != null) { primaryGreenList.Position = (int)Math.Ceiling(((double)currentRGB.GetPrimary()[1]) / 4); primaryGreenList.Text = "Primary G\t\t" + currentRGB.GetPrimary()[1].ToString(); }
-            if (primaryBlueList != null) { primaryBlueList.Position = (int)Math.Ceiling(((double)currentRGB.GetPrimary()[2]) / 4); primaryBlueList.Text = "Primary B\t\t" + currentRGB.GetPrimary()[2].ToString(); }
+            if (primaryRedList != null) { primaryRedList.Position = (int)Math.Ceiling(((double)currentRGB.GetPrimary()[0]) / STEP); primaryRedList.Text = "Primary R\t\t" + currentRGB.GetPrimary()[0].ToString(); }
+            if (primaryGreenList != null) { primaryGreenList.Position = (int)Math.Ceiling(((double)currentRGB.GetPrimary()[1]) / STEP); primaryGreenList.Text = "Primary G\t\t" + currentRGB.GetPrimary()[1].ToString(); }
+            if (primaryBlueList != null) { primaryBlueList.Position = (int)Math.Ceiling(((double)currentRGB.GetPrimary()[2]) / STEP); primaryBlueList.Text = "Primary B\t\t" + currentRGB.GetPrimary()[2].ToString(); }
 
-            if (secondaryRedList != null) { secondaryRedList.Position = (int)Math.Ceiling(((double)currentRGB.GetSecondary()[0]) / 4); secondaryRedList.Text = "Secondary R\t" + currentRGB.GetSecondary()[0].ToString(); }
-            if (secondaryGreenList != null) { secondaryGreenList.Position = (int)Math.Ceiling(((double)currentRGB.GetSecondary()[1]) / 4); secondaryGreenList.Text = "Secondary G\t" + currentRGB.GetSecondary()[1].ToString(); }
-            if (secondaryBlueList != null) { secondaryBlueList.Position = (int)Math.Ceiling(((double)currentRGB.GetSecondary()[2]) / 4); secondaryBlueList.Text = "Secondary B\t" + currentRGB.GetSecondary()[2].ToString(); }
+            if (secondaryRedList != null) { secondaryRedList.Position = (int)Math.Ceiling(((double)currentRGB.GetSecondary()[0]) / STEP); secondaryRedList.Text = "Secondary R\t" + currentRGB.GetSecondary()[0].ToString(); }
+            if (secondaryGreenList != null) { secondaryGreenList.Position = (int)Math.Ceiling(((double)currentRGB.GetSecondary()[1]) / STEP); secondaryGreenList.Text = "Secondary G\t" + currentRGB.GetSecondary()[1].ToString(); }
+            if (secondaryBlueList != null) { secondaryBlueList.Position = (int)Math.Ceiling(((double)currentRGB.GetSecondary()[2]) / STEP); secondaryBlueList.Text = "Secondary B\t" + currentRGB.GetSecondary()[2].ToString(); }
 
-            if (neonRedList != null) { neonRedList.Position = (int)Math.Ceiling(((double)currentRGB.GetNeon()[0]) / 4); neonRedList.Text = "Neon R\t\t" + currentRGB.GetNeon()[0].ToString(); }
-            if (neonGreenList != null) { neonGreenList.Position = (int)Math.Ceiling(((double)currentRGB.GetNeon()[1]) / 4); neonGreenList.Text = "Neon G\t\t" + currentRGB.GetNeon()[1].ToString(); }
-            if (neonBlueList != null) { neonBlueList.Position = (int)Math.Ceiling(((double)currentRGB.GetNeon()[2]) / 4); neonBlueList.Text = "Neon B\t\t" + currentRGB.GetNeon()[2].ToString(); }
+            if (neonRedList != null) { neonRedList.Position = (int)Math.Ceiling(((double)currentRGB.GetNeon()[0]) / STEP); neonRedList.Text = "Neon R\t\t" + currentRGB.GetNeon()[0].ToString(); }
+            if (neonGreenList != null) { neonGreenList.Position = (int)Math.Ceiling(((double)currentRGB.GetNeon()[1]) / STEP); neonGreenList.Text = "Neon G\t\t" + currentRGB.GetNeon()[1].ToString(); }
+            if (neonBlueList != null) { neonBlueList.Position = (int)Math.Ceiling(((double)currentRGB.GetNeon()[2]) / STEP); neonBlueList.Text = "Neon B\t\t" + currentRGB.GetNeon()[2].ToString(); }
+        }
+
+        private void RefreshGUIText()
+        {
+
+            if (primaryRedList != null) { primaryRedList.Text = "Primary R\t\t" + currentRGB.GetPrimary()[0].ToString(); }
+            if (primaryGreenList != null) { primaryGreenList.Text = "Primary G\t\t" + currentRGB.GetPrimary()[1].ToString(); }
+            if (primaryBlueList != null) { primaryBlueList.Text = "Primary B\t\t" + currentRGB.GetPrimary()[2].ToString(); }
+
+            if (secondaryRedList != null) { secondaryRedList.Text = "Secondary R\t" + currentRGB.GetSecondary()[0].ToString(); }
+            if (secondaryGreenList != null) { secondaryGreenList.Text = "Secondary G\t" + currentRGB.GetSecondary()[1].ToString(); }
+            if (secondaryBlueList != null) { secondaryBlueList.Text = "Secondary B\t" + currentRGB.GetSecondary()[2].ToString(); }
+
+            if (neonRedList != null) { neonRedList.Text = "Neon R\t\t" + currentRGB.GetNeon()[0].ToString(); }
+            if (neonGreenList != null) { neonGreenList.Text = "Neon G\t\t" + currentRGB.GetNeon()[1].ToString(); }
+            if (neonBlueList != null) { neonBlueList.Text = "Neon B\t\t" + currentRGB.GetNeon()[2].ToString(); }
         }
 
         private void SetColors(int vehicleHandle)
@@ -197,19 +218,19 @@ namespace vMenuClient
                     #region primary colors
                     if (item == primaryRedList)
                     {
-                        currentRGB.SetPrimaryR((newPos != 64) ? (newPos * 4) : (255));
+                        currentRGB.SetPrimaryR((newPos != MAX_SLIDER_VAL) ? (newPos * STEP) : (MAX_VAL));
                         SetColors(veh.Handle);
                     }
                     else
                     if (item == primaryGreenList)
                     {
-                        currentRGB.SetPrimaryG((newPos != 64) ? (newPos * 4) : (255));
+                        currentRGB.SetPrimaryG((newPos != MAX_SLIDER_VAL) ? (newPos * STEP) : (MAX_VAL));
                         SetColors(veh.Handle);
                     }
                     else
                     if (item == primaryBlueList)
                     {
-                        currentRGB.SetPrimaryB((newPos != 64) ? (newPos * 4) : (255));
+                        currentRGB.SetPrimaryB((newPos != MAX_SLIDER_VAL) ? (newPos * STEP) : (MAX_VAL));
                         SetColors(veh.Handle);
                     }
                     else
@@ -218,19 +239,19 @@ namespace vMenuClient
                     #region secondary colors
                     if (item == secondaryRedList)
                     {
-                        currentRGB.SetSecondaryR((newPos != 64) ? (newPos * 4) : (255));
+                        currentRGB.SetSecondaryR((newPos != MAX_SLIDER_VAL) ? (newPos * STEP) : (MAX_VAL));
                         SetColors(veh.Handle);
                     }
                     else
                     if (item == secondaryGreenList)
                     {
-                        currentRGB.SetSecondaryG((newPos != 64) ? (newPos * 4) : (255));
+                        currentRGB.SetSecondaryG((newPos != MAX_SLIDER_VAL) ? (newPos * STEP) : (MAX_VAL));
                         SetColors(veh.Handle);
                     }
                     else
                     if (item == secondaryBlueList)
                     {
-                        currentRGB.SetSecondaryB((newPos != 64) ? (newPos * 4) : (255));
+                        currentRGB.SetSecondaryB((newPos != MAX_SLIDER_VAL) ? (newPos * STEP) : (MAX_VAL));
                         SetColors(veh.Handle);
                     }
                     else
@@ -239,25 +260,25 @@ namespace vMenuClient
                     #region neon colors
                     if (item == neonRedList)
                     {
-                        currentRGB.SetNeonR((newPos != 64) ? (newPos * 4) : (255));
+                        currentRGB.SetNeonR((newPos != MAX_SLIDER_VAL) ? (newPos * STEP) : (MAX_VAL));
                         SetColors(veh.Handle);
                     }
                     else
                     if (item == neonGreenList)
                     {
-                        currentRGB.SetNeonG((newPos != 64) ? (newPos * 4) : (255));
+                        currentRGB.SetNeonG((newPos != MAX_SLIDER_VAL) ? (newPos * STEP) : (MAX_VAL));
                         SetColors(veh.Handle);
                     }
                     else
                     if (item == neonBlueList)
                     {
-                        currentRGB.SetNeonB((newPos != 64) ? (newPos * 4) : (255));
+                        currentRGB.SetNeonB((newPos != MAX_SLIDER_VAL) ? (newPos * STEP) : (MAX_VAL));
                         SetColors(veh.Handle);
                     }
                     #endregion
-                }
 
-                RefreshGUI();
+                    RefreshGUIText();
+                }
             };
 
             menu.OnSliderItemSelect += async (menu, sliderItem, sliderPosition, itemIndex) =>
@@ -355,7 +376,7 @@ namespace vMenuClient
             }
             else
             {
-                if (result >= 0 && result < 256)
+                if (result >= MIN_VAL && result <= MAX_VAL)
                 {
                     return true;
                 }
