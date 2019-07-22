@@ -29,61 +29,60 @@ namespace vMenuClient
         private const string N_B_ID = "RGBcols_n_b";
 
         public static CarRGBColors currentRGB = new CarRGBColors();
-
         MenuSliderItem primaryRedList = new MenuSliderItem("Primary R", "Red channel of car primary RGB color", 0, 64, 64, false)
         {
-            BarColor = System.Drawing.Color.FromArgb(255, 255, 0, 0),
-            BackgroundColor = System.Drawing.Color.FromArgb(255, 75, 25, 25),
+            BarColor = System.Drawing.Color.FromArgb(200, 255, 0, 0),
+            BackgroundColor = System.Drawing.Color.FromArgb(200, 75, 25, 25),
             ItemData = P_R_ID
         };
         MenuSliderItem primaryGreenList = new MenuSliderItem("Primary G", "Green channel of car primary RGB color", 0, 64, 64, false)
         {
-            BarColor = System.Drawing.Color.FromArgb(255, 0, 255, 0),
-            BackgroundColor = System.Drawing.Color.FromArgb(255, 25, 75, 25),
+            BarColor = System.Drawing.Color.FromArgb(200, 0, 255, 0),
+            BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 75, 25),
             ItemData = P_G_ID
         };
         MenuSliderItem primaryBlueList = new MenuSliderItem("Primary B", "Blue channel of car primary RGB color", 0, 64, 64, false)
         {
-            BarColor = System.Drawing.Color.FromArgb(255, 0, 0, 255),
-            BackgroundColor = System.Drawing.Color.FromArgb(255, 25, 25, 75),
+            BarColor = System.Drawing.Color.FromArgb(200, 0, 0, 255),
+            BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 25, 75),
             ItemData = P_B_ID
         };
 
         MenuSliderItem secondaryRedList = new MenuSliderItem("Secondary R", "Red channel of car secondary RGB color", 0, 64, 64, false)
         {
-            BarColor = System.Drawing.Color.FromArgb(255, 255, 0, 0),
-            BackgroundColor = System.Drawing.Color.FromArgb(255, 75, 25, 25),
+            BarColor = System.Drawing.Color.FromArgb(200, 255, 0, 0),
+            BackgroundColor = System.Drawing.Color.FromArgb(200, 75, 25, 25),
             ItemData = S_R_ID
         };
         MenuSliderItem secondaryGreenList = new MenuSliderItem("Secondary G", "Green channel of car secondary RGB color", 0, 64, 64, false)
         {
-            BarColor = System.Drawing.Color.FromArgb(255, 0, 255, 0),
-            BackgroundColor = System.Drawing.Color.FromArgb(255, 25, 75, 25),
+            BarColor = System.Drawing.Color.FromArgb(200, 0, 255, 0),
+            BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 75, 25),
             ItemData = S_G_ID
         };
         MenuSliderItem secondaryBlueList = new MenuSliderItem("Secondary B", "Blue channel of car secondary RGB color", 0, 64, 64, false)
         {
-            BarColor = System.Drawing.Color.FromArgb(255, 0, 0, 255),
-            BackgroundColor = System.Drawing.Color.FromArgb(255, 25, 25, 75),
+            BarColor = System.Drawing.Color.FromArgb(200, 0, 0, 255),
+            BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 25, 75),
             ItemData = S_B_ID
         };
 
         MenuSliderItem neonRedList = new MenuSliderItem("Neon R", "Red channel of car neon RGB color", 0, 64, 64, false)
         {
-            BarColor = System.Drawing.Color.FromArgb(255, 255, 0, 0),
-            BackgroundColor = System.Drawing.Color.FromArgb(255, 75, 25, 25),
+            BarColor = System.Drawing.Color.FromArgb(200, 255, 0, 0),
+            BackgroundColor = System.Drawing.Color.FromArgb(200, 75, 25, 25),
             ItemData = N_R_ID
         };
         MenuSliderItem neonGreenList = new MenuSliderItem("Neon G", "Green channel of car neon RGB color", 0, 64, 64, false)
         {
-            BarColor = System.Drawing.Color.FromArgb(255, 0, 255, 0),
-            BackgroundColor = System.Drawing.Color.FromArgb(255, 25, 75, 25),
+            BarColor = System.Drawing.Color.FromArgb(200, 0, 255, 0),
+            BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 75, 25),
             ItemData = N_G_ID
         };
         MenuSliderItem neonBlueList = new MenuSliderItem("Neon B", "Blue channel of car neon RGB color", 0, 64, 64, false)
         {
-            BarColor = System.Drawing.Color.FromArgb(255, 0, 0, 255),
-            BackgroundColor = System.Drawing.Color.FromArgb(255, 25, 25, 75),
+            BarColor = System.Drawing.Color.FromArgb(200, 0, 0, 255),
+            BackgroundColor = System.Drawing.Color.FromArgb(200, 25, 25, 75),
             ItemData = N_B_ID
         };
 
@@ -140,17 +139,17 @@ namespace vMenuClient
 
         public void RefreshGUI()
         {
-            if (primaryRedList != null) { primaryRedList.Position = currentRGB.GetPrimary()[0] / 4; primaryRedList.Text = "Primary R\t\t" + currentRGB.GetPrimary()[0].ToString(); }
-            if (primaryGreenList != null) { primaryGreenList.Position = currentRGB.GetPrimary()[1] / 4; primaryGreenList.Text = "Primary G\t\t" + currentRGB.GetPrimary()[1].ToString(); }
-            if (primaryBlueList != null) { primaryBlueList.Position = currentRGB.GetPrimary()[2] / 4; primaryBlueList.Text = "Primary B\t\t" + currentRGB.GetPrimary()[2].ToString(); }
+            if (primaryRedList != null) { primaryRedList.Position = (int)Math.Ceiling(((double)currentRGB.GetPrimary()[0]) / 4); primaryRedList.Text = "Primary R\t\t" + currentRGB.GetPrimary()[0].ToString(); }
+            if (primaryGreenList != null) { primaryGreenList.Position = (int)Math.Ceiling(((double)currentRGB.GetPrimary()[1]) / 4); primaryGreenList.Text = "Primary G\t\t" + currentRGB.GetPrimary()[1].ToString(); }
+            if (primaryBlueList != null) { primaryBlueList.Position = (int)Math.Ceiling(((double)currentRGB.GetPrimary()[2]) / 4); primaryBlueList.Text = "Primary B\t\t" + currentRGB.GetPrimary()[2].ToString(); }
 
-            if (secondaryRedList != null) { secondaryRedList.Position = currentRGB.GetSecondary()[0] / 4; secondaryRedList.Text = "Secondary R\t" + currentRGB.GetSecondary()[0].ToString(); }
-            if (secondaryGreenList != null) { secondaryGreenList.Position = currentRGB.GetSecondary()[1] / 4; secondaryGreenList.Text = "Secondary G\t" + currentRGB.GetSecondary()[1].ToString(); }
-            if (secondaryBlueList != null) { secondaryBlueList.Position = currentRGB.GetSecondary()[2] / 4; secondaryBlueList.Text = "Secondary B\t" + currentRGB.GetSecondary()[2].ToString(); }
+            if (secondaryRedList != null) { secondaryRedList.Position = (int)Math.Ceiling(((double)currentRGB.GetSecondary()[0]) / 4); secondaryRedList.Text = "Secondary R\t" + currentRGB.GetSecondary()[0].ToString(); }
+            if (secondaryGreenList != null) { secondaryGreenList.Position = (int)Math.Ceiling(((double)currentRGB.GetSecondary()[1]) / 4); secondaryGreenList.Text = "Secondary G\t" + currentRGB.GetSecondary()[1].ToString(); }
+            if (secondaryBlueList != null) { secondaryBlueList.Position = (int)Math.Ceiling(((double)currentRGB.GetSecondary()[2]) / 4); secondaryBlueList.Text = "Secondary B\t" + currentRGB.GetSecondary()[2].ToString(); }
 
-            if (neonRedList != null) { neonRedList.Position = currentRGB.GetNeon()[0] / 4; neonRedList.Text = "Neon R\t\t" + currentRGB.GetNeon()[0].ToString(); }
-            if (neonGreenList != null) { neonGreenList.Position = currentRGB.GetNeon()[1] / 4; neonGreenList.Text = "Neon G\t\t" + currentRGB.GetNeon()[1].ToString(); }
-            if (neonBlueList != null) { neonBlueList.Position = currentRGB.GetNeon()[2] / 4; neonBlueList.Text = "Neon B\t\t" + currentRGB.GetNeon()[2].ToString(); }
+            if (neonRedList != null) { neonRedList.Position = (int)Math.Ceiling(((double)currentRGB.GetNeon()[0]) / 4); neonRedList.Text = "Neon R\t\t" + currentRGB.GetNeon()[0].ToString(); }
+            if (neonGreenList != null) { neonGreenList.Position = (int)Math.Ceiling(((double)currentRGB.GetNeon()[1]) / 4); neonGreenList.Text = "Neon G\t\t" + currentRGB.GetNeon()[1].ToString(); }
+            if (neonBlueList != null) { neonBlueList.Position = (int)Math.Ceiling(((double)currentRGB.GetNeon()[2]) / 4); neonBlueList.Text = "Neon B\t\t" + currentRGB.GetNeon()[2].ToString(); }
         }
 
         private void SetColors(int vehicleHandle)
