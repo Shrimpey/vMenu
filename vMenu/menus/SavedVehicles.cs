@@ -13,7 +13,7 @@ using static vMenuShared.PermissionsManager;
 
 namespace vMenuClient
 {
-    public class SavedVehicles
+    public class SavedVehicles : BaseScript
     {
         // Variables
         private Menu menu;
@@ -121,6 +121,7 @@ namespace vMenuClient
                     {
                         SpawnVehicle(currentlySelectedVehicle.Value.model, true, true, false, vehicleInfo: currentlySelectedVehicle.Value, saveName: currentlySelectedVehicle.Key.Substring(4));
                     }
+                    Exports["vstancer"].LoadVStancerPreset();
                 }
                 else if (item == renameVehicle)
                 {
