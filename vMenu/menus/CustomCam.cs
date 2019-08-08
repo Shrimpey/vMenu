@@ -590,6 +590,12 @@ namespace vMenuClient {
                             MainMenu.EnhancedCamMenu.driftCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
                             MainMenu.EnhancedCamMenu.driftCamera.IsActive = true;
                         }
+                    }else{
+                        // Disable custom camera
+                        if (MainMenu.EnhancedCamMenu.LeadCam || MainMenu.EnhancedCamMenu.ChaseCam || MainMenu.EnhancedCamMenu.DroneCam){
+                            MainMenu.EnhancedCamMenu.SwitchToGameplayCam();
+                            Notify.Info("Vehicle not found, switching to gameplay camera...", false);
+                        }
                     }
                 }
             } else {
@@ -741,6 +747,12 @@ namespace vMenuClient {
                             MainMenu.EnhancedCamMenu.chaseCamera = MainMenu.EnhancedCamMenu.CreateNonAttachedCamera();
                             MainMenu.EnhancedCamMenu.chaseCamera.IsActive = true;
                             target = GetClosestVehicle(2000, maxAngle);
+                        }
+                    }else{
+                        // Disable custom camera
+                        if (MainMenu.EnhancedCamMenu.LeadCam || MainMenu.EnhancedCamMenu.ChaseCam || MainMenu.EnhancedCamMenu.DroneCam){
+                            MainMenu.EnhancedCamMenu.SwitchToGameplayCam();
+                            Notify.Info("Vehicle not found, switching to gameplay camera...", false);
                         }
                     }
                 }

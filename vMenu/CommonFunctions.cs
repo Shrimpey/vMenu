@@ -908,6 +908,12 @@ namespace vMenuClient
         private static int currentlySpectatingPlayer = -1;
         public static async void SpectatePlayer(Player player, bool forceDisable = false)
         {
+            // Disable custom camera
+            if(MainMenu.EnhancedCamMenu.LeadCam || MainMenu.EnhancedCamMenu.ChaseCam || MainMenu.EnhancedCamMenu.DroneCam)
+            {
+                MainMenu.EnhancedCamMenu.SwitchToGameplayCam();
+            }
+			
             if (forceDisable)
             {
                 NetworkSetInSpectatorMode(false, 0); // disable spectating.
