@@ -509,8 +509,9 @@ namespace vMenuClient {
 
                             // Setting the position offset also based on angular velocity
                             if (!lockOffsetPos) {
-                                oldPosXOffset = EnhancedCamera.CamMath.Lerp(oldPosXOffset, finalRotation, (posInterpolation>=1f)?(0.99f):(posInterpolation));
-                            } else {
+                                oldPosXOffset = EnhancedCamera.CamMath.Lerp(oldPosXOffset, finalRotation, posInterpolation);
+                            }
+                            else {
                                 oldPosXOffset = finalRotation;
                             }
 
@@ -529,7 +530,7 @@ namespace vMenuClient {
                             // Calculate final offset taking into consideration dynamic offset (oldPosXOffset), static
                             // offset and the offset resulting from rotating the camera around the car
                             if (!linearPosOffset) {
-                                if (oldPosXOffset != finalRotation) {
+                                if (!lockOffsetPos) {
                                     float rotation = oldPosXOffset + EnhancedCamera.userYaw;
                                     if (pedLock) {
                                         MainMenu.EnhancedCamMenu.driftCamera.Position = veh.Position + EnhancedCamera.CamMath.RotateAroundAxis(staticPosition, Vector3.ForwardLH, rotation * EnhancedCamera.CamMath.DegToRad);
