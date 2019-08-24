@@ -19,6 +19,10 @@ namespace vMenuClient
         private Menu menu;
         private Menu teleportOptionsMenu;
         private Menu developerToolsMenu;
+        
+        public bool TimePersistent { get; private set; } = false;
+        public int TimeHour { get; private set; } = 12;
+        private int weatherType = 0;
 
         public bool ShowSpeedoKmh { get; private set; } = UserDefaults.MiscSpeedKmh;
         public bool ShowSpeedoMph { get; private set; } = UserDefaults.MiscSpeedMph;
@@ -91,6 +95,24 @@ namespace vMenuClient
             MenuItem teleportMenuBtn = new MenuItem("Teleport Locations", "Teleport to pre-configured locations, added by the server owner.");
             MenuController.AddSubmenu(menu, teleportMenu);
             MenuController.BindMenuItem(menu, teleportMenu, teleportMenuBtn);
+
+            // Weather change menu
+            List<string> weatherListData = new List<string>() { "CLEAR", "EXTRASUNNY", "CLOUDS", "OVERCAST", "RAIN", "CLEARING", "THUNDER", "SMOG", "FOGGY", "XMAS", "SNOWLIGHT", "BLIZZARD", "SNOW", "HALLOWEEN", "NEUTRAL" };
+            MenuListItem weatherList = new MenuListItem("Weather", weatherListData, 0, "Select weather.");
+            menu.AddMenuItem(weatherList);
+
+            // Time change menu
+            List<string> timeData = new List<string>();
+            for (var i = 0; i < 24; i++)
+            {
+                timeData.Add(i.ToString() + ".00");
+            }
+            MenuListItem timeDataList = new MenuListItem("Time", timeData, 12, "Select time of day.");
+            menu.AddMenuItem(timeDataList);
+
+            // Time persistance
+            MenuCheckboxItem timePersistent = new MenuCheckboxItem("Persistent time", "Stop time", TimePersistent);
+            menu.AddMenuItem(timePersistent);
 
             // keybind settings menu
             Menu keybindMenu = new Menu(Game.Player.Name, "Keybind Settings");
@@ -686,6 +708,10 @@ namespace vMenuClient
                 {
                     RestorePlayerWeapons = _checked;
                 }
+                else if (item == timePersistent)
+                {
+                    TimePersistent = _checked;
+                }
 
             };
 
@@ -696,6 +722,52 @@ namespace vMenuClient
                 if (item == saveSettings)
                 {
                     UserDefaults.SaveSettings();
+                }
+            };
+
+            // Handle list changes.
+            menu.OnListIndexChange += async (sender, item, oldIndex, newIndex, itemIndex) => {
+                if (item == weatherList)
+                {
+                    weatherType = newIndex;
+
+                    if (weatherListData[weatherType] == "XMAS")
+                    {
+                        // Turn trails on
+                        SetForceVehicleTrails(true);
+                        SetForcePedFootstepsTracks(true);
+
+                        // Request audio and particles
+                        RequestScriptAudioBank("ICE_FOOTSTEPS", false);
+                        RequestScriptAudioBank("SNOW_FOOTSTEPS", false);
+                        RequestNamedPtfxAsset("core_snow");
+                        while (!HasNamedPtfxAssetLoaded("core_snow"))
+                        {
+                            await Delay(0);
+                        }
+                        UseParticleFxAssetNextCall("core_snow");
+                    }
+                    else
+                    {
+                        // Turn trails off
+                        SetForceVehicleTrails(false);
+                        SetForcePedFootstepsTracks(false);
+
+                        // Remove audio and particles
+                        RemoveNamedPtfxAsset("core_snow");
+                        ReleaseNamedScriptAudioBank("ICE_FOOTSTEPS");
+                        ReleaseNamedScriptAudioBank("SNOW_FOOTSTEPS");
+                    }
+
+                    ClearOverrideWeather();
+                    ClearWeatherTypePersist();
+                    SetWeatherTypeNowPersist(weatherListData[weatherType]);
+
+                }
+                else if (item == timeDataList)
+                {
+                    TimeHour = newIndex;
+                    NetworkOverrideClockTime(newIndex, 0, 0);
                 }
             };
         }

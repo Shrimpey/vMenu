@@ -136,6 +136,15 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task GeneralTasks()
         {
+            // Persistent time
+            if (MainMenu.MiscSettingsMenu != null)
+            {
+                if (MainMenu.MiscSettingsMenu.TimePersistent)
+                {
+                    NetworkOverrideClockTime(MainMenu.MiscSettingsMenu.TimeHour, 0, 0);
+                }
+            }
+
             // CommonFunctions is required, if it doesn't exist then we won't execute the checks.
             // Check if the player has switched to a new vehicle.
             if (Game.PlayerPed.IsInVehicle()) // added this for improved performance.
