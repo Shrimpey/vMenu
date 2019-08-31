@@ -21,6 +21,7 @@ namespace vMenuClient
         private Menu developerToolsMenu;
         
         public bool TimePersistent { get; private set; } = false;
+        public bool ClientsideWeather { get; private set; } = false;
         public int TimeHour { get; private set; } = 12;
         private int weatherType = 0;
 
@@ -96,9 +97,13 @@ namespace vMenuClient
             MenuController.AddSubmenu(menu, teleportMenu);
             MenuController.BindMenuItem(menu, teleportMenu, teleportMenuBtn);
 
+            // Clientside weather checkbox
+            MenuCheckboxItem clientsideWeather = new MenuCheckboxItem("Clientside weather", "Enable clientside weather", ClientsideWeather);
+            menu.AddMenuItem(clientsideWeather);
+
             // Weather change menu
             List<string> weatherListData = new List<string>() { "CLEAR", "EXTRASUNNY", "CLOUDS", "OVERCAST", "RAIN", "CLEARING", "THUNDER", "SMOG", "FOGGY", "XMAS", "SNOWLIGHT", "BLIZZARD", "SNOW", "HALLOWEEN", "NEUTRAL" };
-            MenuListItem weatherList = new MenuListItem("Weather", weatherListData, 0, "Select weather.");
+            MenuListItem weatherList = new MenuListItem("Weather", weatherListData, 0, "Select weather.") { Enabled = false };
             menu.AddMenuItem(weatherList);
 
             // Time change menu
@@ -711,6 +716,14 @@ namespace vMenuClient
                 else if (item == timePersistent)
                 {
                     TimePersistent = _checked;
+                }else if(item == clientsideWeather) {
+                    ClientsideWeather = _checked;
+                    weatherList.Enabled = _checked;
+
+                    if (!ClientsideWeather) {
+                        ClearOverrideWeather();
+                        ClearWeatherTypePersist();
+                    }
                 }
 
             };
