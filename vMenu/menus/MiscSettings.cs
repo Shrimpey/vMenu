@@ -98,7 +98,7 @@ namespace vMenuClient
             MenuController.BindMenuItem(menu, teleportMenu, teleportMenuBtn);
 
             // Clientside weather checkbox
-            MenuCheckboxItem clientsideWeather = new MenuCheckboxItem("Clientside weather", "Enable clientside weather", ClientsideWeather);
+            MenuCheckboxItem clientsideWeather = new MenuCheckboxItem("Clientside weather and time", "Enable clientside weather and time", ClientsideWeather);
             menu.AddMenuItem(clientsideWeather);
 
             // Weather change menu
@@ -112,11 +112,11 @@ namespace vMenuClient
             {
                 timeData.Add(i.ToString() + ".00");
             }
-            MenuListItem timeDataList = new MenuListItem("Time", timeData, 12, "Select time of day.");
+            MenuListItem timeDataList = new MenuListItem("Time", timeData, 12, "Select time of day.") { Enabled = false };
             menu.AddMenuItem(timeDataList);
 
             // Time persistance
-            MenuCheckboxItem timePersistent = new MenuCheckboxItem("Persistent time", "Stop time", TimePersistent);
+            MenuCheckboxItem timePersistent = new MenuCheckboxItem("Persistent time", "Stop time", TimePersistent) { Enabled = false };
             menu.AddMenuItem(timePersistent);
 
             // keybind settings menu
@@ -719,6 +719,8 @@ namespace vMenuClient
                 }else if(item == clientsideWeather) {
                     ClientsideWeather = _checked;
                     weatherList.Enabled = _checked;
+                    timeDataList.Enabled = _checked;
+                    timePersistent.Enabled = _checked;
 
                     if (!ClientsideWeather) {
                         ClearOverrideWeather();

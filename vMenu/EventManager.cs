@@ -89,9 +89,6 @@ namespace vMenuClient
             }
         }
 
-        /// <summary>
-        /// Sets the addon models from the addons.json file.
-        /// </summary>
         private void SetAddons()
         {
             // reset addons
@@ -198,9 +195,6 @@ namespace vMenuClient
             ForceSocialClubUpdate();
         }
 
-        /// <summary>
-        /// Loads/unloads the snow fx particles if needed.
-        /// </summary>
         private async void UpdateWeatherParticlesOnce()
         {
             if (currentWeatherType.ToUpper() == "XMAS")
@@ -232,62 +226,62 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task WeatherSync()
         {
-            if (GetSettingsBool(Setting.vmenu_enable_weather_sync))
-            {
-                // Weather is set every 500ms, if it's changed, then it will transition to the new phase within 20 seconds.
-                await Delay(500);
+            if (MainMenu.MiscSettingsMenu != null) {
+                if (!MainMenu.MiscSettingsMenu.ClientsideWeather) {
+                    if (GetSettingsBool(Setting.vmenu_enable_weather_sync)) {
+                        // Weather is set every 500ms, if it's changed, then it will transition to the new phase within 20 seconds.
+                        await Delay(500);
 
-                var justChanged = false;
-                UpdateWeatherParticlesOnce();
-                if (currentWeatherType != lastWeather)
-                {
-                    Log($"Start changing weather type.\nOld weather: {lastWeather}.\nNew weather type: {currentWeatherType}.\nBlackout? {blackoutMode}.\nThis change will take 45.5 seconds!");
-                    CurrentlySwitchingWeather = true;
-                    ClearWeatherTypePersist();
-                    ClearOverrideWeather();
-                    SetWeatherTypeNow(lastWeather);
-                    var previousWeather = lastWeather;
-                    lastWeather = currentWeatherType;
-                    SetWeatherTypeOverTime(currentWeatherType, 30f);
-                    int tmpTimer = GetGameTimer();
+                        var justChanged = false;
+                        UpdateWeatherParticlesOnce();
+                        if (currentWeatherType != lastWeather) {
+                            Log($"Start changing weather type.\nOld weather: {lastWeather}.\nNew weather type: {currentWeatherType}.\nBlackout? {blackoutMode}.\nThis change will take 45.5 seconds!");
+                            CurrentlySwitchingWeather = true;
+                            ClearWeatherTypePersist();
+                            ClearOverrideWeather();
+                            SetWeatherTypeNow(lastWeather);
+                            var previousWeather = lastWeather;
+                            lastWeather = currentWeatherType;
+                            SetWeatherTypeOverTime(currentWeatherType, 30f);
+                            int tmpTimer = GetGameTimer();
 
-                    // Wait until the transition is completed.
-                    while (GetGameTimer() - tmpTimer < 30000) // wait 30 _real_ seconds
-                    {
-                        // To update the current state in the menu subtitle counter pre-text.
-                        float weatherChangeState = ((float)GetGameTimer() - (float)tmpTimer) / 30000f;
+                            // Wait until the transition is completed.
+                            while (GetGameTimer() - tmpTimer < 30000) // wait 30 _real_ seconds
+                            {
+                                // To update the current state in the menu subtitle counter pre-text.
+                                float weatherChangeState = ((float)GetGameTimer() - (float)tmpTimer) / 30000f;
 
-                        if (MainMenu.WeatherOptionsMenu != null)
-                        {
-                            MainMenu.WeatherOptionsMenu.GetMenu().CounterPreText = $"(Cooldown {Math.Ceiling(30f - (30f * weatherChangeState))}) ";
+                                if (MainMenu.WeatherOptionsMenu != null) {
+                                    MainMenu.WeatherOptionsMenu.GetMenu().CounterPreText = $"(Cooldown {Math.Ceiling(30f - (30f * weatherChangeState))}) ";
+                                }
+                                await Delay(100);
+                            }
+
+                            // Reset the intensity to make the game handle the intensity correctly.
+                            SetRainFxIntensity(-1f);
+
+                            // Set the new weather type to be persistent.
+                            SetWeatherTypeNow(currentWeatherType);
+                            justChanged = true;
+
+                            // Dbg logging
+                            Log("done changing weather type (duration: 45.5 seconds)");
+
+                            // Stop currently switching weather type checks.
+                            CurrentlySwitchingWeather = false;
+
+                            // Reset the menu subtitle counter pre-text.
+                            if (MainMenu.WeatherOptionsMenu != null)
+                                MainMenu.WeatherOptionsMenu.GetMenu().CounterPreText = null;
+
+                            TriggerEvent("vMenu:WeatherChangeComplete", previousWeather, currentWeatherType);
                         }
-                        await Delay(100);
+                        if (!justChanged) {
+                            SetWeatherTypeNowPersist(currentWeatherType);
+                        }
+                        SetBlackout(blackoutMode);
                     }
-
-                    // Reset the intensity to make the game handle the intensity correctly.
-                    SetRainFxIntensity(-1f);
-
-                    // Set the new weather type to be persistent.
-                    SetWeatherTypeNow(currentWeatherType);
-                    justChanged = true;
-
-                    // Dbg logging
-                    Log("done changing weather type (duration: 45.5 seconds)");
-
-                    // Stop currently switching weather type checks.
-                    CurrentlySwitchingWeather = false;
-
-                    // Reset the menu subtitle counter pre-text.
-                    if (MainMenu.WeatherOptionsMenu != null)
-                        MainMenu.WeatherOptionsMenu.GetMenu().CounterPreText = null;
-
-                    TriggerEvent("vMenu:WeatherChangeComplete", previousWeather, currentWeatherType);
                 }
-                if (!justChanged)
-                {
-                    SetWeatherTypeNowPersist(currentWeatherType);
-                }
-                SetBlackout(blackoutMode);
             }
         }
 
@@ -297,45 +291,40 @@ namespace vMenuClient
         /// <returns></returns>
         private async Task TimeSync()
         {
-            // Check if the time sync should be disabled.
-            if (GetSettingsBool(Setting.vmenu_enable_time_sync))
-            {
+            if (MainMenu.MiscSettingsMenu != null) {
+                if (!MainMenu.MiscSettingsMenu.ClientsideWeather) {
+                    // Check if the time sync should be disabled.
+                    if (GetSettingsBool(Setting.vmenu_enable_time_sync)) {
 
-                // If time is frozen...
-                if (freezeTime)
-                {
-                    // Time is set every tick to make sure it never changes (even with some lag).
-                    await Delay(0);
-                    NetworkOverrideClockTime(currentHours, currentMinutes, 0);
-                }
-                // Otherwise...
-                else
-                {
-                    if (minuteClockSpeed > 2000)
-                    {
-                        await Delay(2000);
-                    }
-                    else
-                    {
-                        await Delay(minuteClockSpeed);
-                    }
-                    // only add a minute if the timer has reached the configured duration (2000ms (2s) by default).
-                    if (GetGameTimer() - minuteTimer > minuteClockSpeed)
-                    {
-                        currentMinutes++;
-                        minuteTimer = GetGameTimer();
-                    }
+                        // If time is frozen...
+                        if (freezeTime) {
+                            // Time is set every tick to make sure it never changes (even with some lag).
+                            await Delay(0);
+                            NetworkOverrideClockTime(currentHours, currentMinutes, 0);
+                        }
+                        // Otherwise...
+                        else {
+                            if (minuteClockSpeed > 2000) {
+                                await Delay(2000);
+                            } else {
+                                await Delay(minuteClockSpeed);
+                            }
+                            // only add a minute if the timer has reached the configured duration (2000ms (2s) by default).
+                            if (GetGameTimer() - minuteTimer > minuteClockSpeed) {
+                                currentMinutes++;
+                                minuteTimer = GetGameTimer();
+                            }
 
-                    if (currentMinutes > 59)
-                    {
-                        currentMinutes = 0;
-                        currentHours++;
+                            if (currentMinutes > 59) {
+                                currentMinutes = 0;
+                                currentHours++;
+                            }
+                            if (currentHours > 23) {
+                                currentHours = 0;
+                            }
+                            NetworkOverrideClockTime(currentHours, currentMinutes, 0);
+                        }
                     }
-                    if (currentHours > 23)
-                    {
-                        currentHours = 0;
-                    }
-                    NetworkOverrideClockTime(currentHours, currentMinutes, 0);
                 }
             }
         }
@@ -347,12 +336,9 @@ namespace vMenuClient
         /// <param name="cloudsType"></param>
         private void SetClouds(float opacity, string cloudsType)
         {
-            if (opacity == 0f && cloudsType == "removed")
-            {
+            if (opacity == 0f && cloudsType == "removed") {
                 ClearCloudHat();
-            }
-            else
-            {
+            } else {
                 SetCloudHatOpacity(opacity);
                 SetCloudHatTransition(cloudsType, 4f);
             }
@@ -365,15 +351,19 @@ namespace vMenuClient
         /// <param name="blackoutEnabled"></param>
         private void SetWeather(string newWeather, bool blackoutEnabled, bool dynamicChanges)
         {
-            currentWeatherType = newWeather;
-            blackoutMode = blackoutEnabled;
-            dynamicWeather = dynamicChanges;
-            if (MainMenu.WeatherOptionsMenu != null)
-            {
-                MainMenu.WeatherOptionsMenu.dynamicWeatherEnabled.Checked = dynamicChanges;
-                MainMenu.WeatherOptionsMenu.blackout.Checked = blackoutEnabled;
+            if (MainMenu.MiscSettingsMenu != null) {
+                if (!MainMenu.MiscSettingsMenu.ClientsideWeather) {
+                    currentWeatherType = newWeather;
+                    blackoutMode = blackoutEnabled;
+                    dynamicWeather = dynamicChanges;
+                    if (MainMenu.WeatherOptionsMenu != null) {
+                        MainMenu.WeatherOptionsMenu.dynamicWeatherEnabled.Checked = dynamicChanges;
+                        MainMenu.WeatherOptionsMenu.blackout.Checked = blackoutEnabled;
+                    }
+                }
             }
         }
+
 
         /// <summary>
         /// Update the current time.
@@ -383,50 +373,48 @@ namespace vMenuClient
         /// <param name="freezeTime"></param>
         private async void SetTime(int newHours, int newMinutes, bool freezeTime)
         {
-            currentServerHours = newHours;
-            currentServerMinutes = newMinutes;
+            if (MainMenu.MiscSettingsMenu != null) {
+                if (!MainMenu.MiscSettingsMenu.ClientsideWeather) {
+                    currentServerHours = newHours;
+                    currentServerMinutes = newMinutes;
 
-            bool IsTimeDifferenceTooSmall()
-            {
-                var totalDifference = 0;
-                totalDifference += (newHours - currentHours) * 60;
-                totalDifference += (newMinutes - currentMinutes);
+                    bool IsTimeDifferenceTooSmall() {
+                        var totalDifference = 0;
+                        totalDifference += (newHours - currentHours) * 60;
+                        totalDifference += (newMinutes - currentMinutes);
 
-                if (totalDifference < 15 && totalDifference > -120)
-                    return true;
+                        if (totalDifference < 15 && totalDifference > -120)
+                            return true;
 
-                return false;
-            }
-
-            EventManager.freezeTime = freezeTime;
-
-            if (SmoothTimeTransitionsEnabled && !IsTimeDifferenceTooSmall())
-            {
-                if (!DontDoTimeSyncRightNow)
-                {
-                    bool frozen = freezeTime;
-                    DontDoTimeSyncRightNow = true;
-                    EventManager.freezeTime = false;
-
-                    var oldSpeed = minuteClockSpeed;
-
-                    while (currentHours != currentServerHours || currentMinutes != currentServerMinutes)
-                    {
-                        EventManager.freezeTime = false;
-                        await Delay(0);
-                        minuteClockSpeed = 1;
+                        return false;
                     }
+
                     EventManager.freezeTime = freezeTime;
 
-                    minuteClockSpeed = oldSpeed;
+                    if (SmoothTimeTransitionsEnabled && !IsTimeDifferenceTooSmall()) {
+                        if (!DontDoTimeSyncRightNow) {
+                            bool frozen = freezeTime;
+                            DontDoTimeSyncRightNow = true;
+                            EventManager.freezeTime = false;
 
-                    DontDoTimeSyncRightNow = false;
+                            var oldSpeed = minuteClockSpeed;
+
+                            while (currentHours != currentServerHours || currentMinutes != currentServerMinutes) {
+                                EventManager.freezeTime = false;
+                                await Delay(0);
+                                minuteClockSpeed = 1;
+                            }
+                            EventManager.freezeTime = freezeTime;
+
+                            minuteClockSpeed = oldSpeed;
+
+                            DontDoTimeSyncRightNow = false;
+                        }
+                    } else {
+                        currentHours = currentServerHours;
+                        currentMinutes = currentServerMinutes;
+                    }
                 }
-            }
-            else
-            {
-                currentHours = currentServerHours;
-                currentMinutes = currentServerMinutes;
             }
         }
 
@@ -524,9 +512,6 @@ namespace vMenuClient
             }
         }
 
-        /// <summary>
-        /// Updates ped decorators for the clothing animation when players have joined.
-        /// </summary>
         private async void UpdatePedDecors()
         {
             await Delay(1000);

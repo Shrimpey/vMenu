@@ -137,11 +137,11 @@ namespace vMenuClient
         private async Task GeneralTasks()
         {
             // Persistent time
-            if (MainMenu.MiscSettingsMenu != null)
-            {
-                if (MainMenu.MiscSettingsMenu.TimePersistent)
-                {
-                    NetworkOverrideClockTime(MainMenu.MiscSettingsMenu.TimeHour, 0, 0);
+            if (MainMenu.MiscSettingsMenu != null){
+                if (MainMenu.MiscSettingsMenu.ClientsideWeather) {
+                    if (MainMenu.MiscSettingsMenu.TimePersistent) {
+                        NetworkOverrideClockTime(MainMenu.MiscSettingsMenu.TimeHour, 0, 0);
+                    }
                 }
             }
 
